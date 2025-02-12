@@ -19,19 +19,19 @@ export function Sidebar() {
 
     return (
         <motion.aside
-            className={`fixed inset-y-0 left-0 z-40 bg-background border-r border-border shadow-lg transition-all duration-300 ${isExpanded ? "w-64" : "w-20"
+            className={`fixed inset-y-0 left-0 z-40 bg-background border-r border-border shadow-lg transition-all duration-300 ${isExpanded ? "w-56" : "w-20"
                 } lg:relative lg:flex`}
         >
             <nav className="flex flex-col h-full">
-                <div className="flex items-center justify-between h-16 px-4 bg-primary">
-                    <span className={`text-2xl font-semibold text-primary-foreground transition-all duration-300 ${isExpanded ? "opacity-100" : "opacity-0 hidden"
-                        }`}>Hakone</span>
+                <div className={`flex items-center h-[72px] ${isExpanded ? "w-56" : "w-20"} w-20 px-2 bg-primary`}>
                     <button
-                        className="p-2 text-primary-foreground hover:bg-primary-foreground/20 rounded-md"
+                        className="py-2 px-4 text-primary-foreground hover:bg-primary-foreground/20 rounded-md"
                         onClick={() => setIsExpanded(!isExpanded)}
                     >
-                        {isExpanded ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
+                        {isExpanded ? <ChevronLeft size={28} /> : <ChevronRight size={28} />}
                     </button>
+                    <span className={`text-2xl font-semibold text-primary-foreground transition-all duration-300 ${isExpanded ? "opacity-100" : "opacity-0 hidden"
+                        }`}>Menu</span>
                 </div>
 
                 <ul className="flex-1 px-4 py-4 space-y-2">

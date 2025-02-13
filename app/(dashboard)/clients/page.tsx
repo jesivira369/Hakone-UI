@@ -44,7 +44,7 @@ export default function Clients() {
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold mb-4">Clientes</h1>
-            <div className="flex justify-between mb-4">
+            <div className="flex justify-between mb-4 gap-4">
                 <Input
                     placeholder="Buscar cliente..."
                     value={search}
@@ -58,6 +58,7 @@ export default function Clients() {
                         <TableCell>Nombre</TableCell>
                         <TableCell>Email</TableCell>
                         <TableCell>Teléfono</TableCell>
+                        <TableCell>Cantidad Bicis</TableCell>
                         <TableCell>Acciones</TableCell>
                     </TableRow>
                 </TableHeader>
@@ -69,6 +70,7 @@ export default function Clients() {
                                 <TableCell>{client.name}</TableCell>
                                 <TableCell>{client.email}</TableCell>
                                 <TableCell>{client.phone}</TableCell>
+                                <TableCell>{`${client?.bicycles?.length ?? 0} Bicicleta`}</TableCell>
                                 <TableCell className="flex gap-2">
                                     <Button size="sm" variant="ghost" onClick={() => router.push(`/clientes/${client.id}`)}>
                                         <Eye size={16} />

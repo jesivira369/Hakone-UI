@@ -3,20 +3,24 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
+import { Client } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { Table, TableHeader, TableBody, TableRow, TableCell } from "@/components/ui/Table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash, Edit } from "lucide-react";
+import { Trash, Edit, Eye } from "lucide-react";
 import { DeleteModal } from "@/components/ui/DeleteModal";
+import { ClientModal } from "@/components/ui/ClientModal";
 
 export default function Clients() {
     const queryClient = useQueryClient();
     const router = useRouter();
     const [search, setSearch] = useState("");
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false)
 
-    const { data: clients, isLoading, error } = useQuery({
+    const { data: clients, isLoading, error } = useQuery<Client[]>({
         queryKey: ["clients"],
         queryFn: async () => {
             const { data } = await api.get("/clients");
@@ -25,7 +29,7 @@ export default function Clients() {
     });
 
     const deleteMutation = useMutation({
-        mutationFn: async (id) => {
+        mutationFn: async (id: number) => {
             await api.delete(`/clients/${id}`);
         },
         onSuccess: () => {
@@ -35,6 +39,7 @@ export default function Clients() {
 
     if (isLoading) return <p>Cargando clientes...</p>;
     if (error) return <p>Error al cargar los clientes.</p>;
+    if (!clients) return null;
 
     return (
         <div className="p-6">
@@ -45,7 +50,7 @@ export default function Clients() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
-                <Button onClick={() => router.push("/clientes/nuevo")}>Nuevo Cliente</Button>
+                <Button onClick={() => { setSelectedClient(null); setIsModalOpen(true); }}>Nuevo Cliente</Button>
             </div>
             <Table>
                 <TableHeader>
@@ -65,7 +70,10 @@ export default function Clients() {
                                 <TableCell>{client.email}</TableCell>
                                 <TableCell>{client.phone}</TableCell>
                                 <TableCell className="flex gap-2">
-                                    <Button size="sm" variant="outline" onClick={() => router.push(`/clientes/${client.id}`)}>
+                                    <Button size="sm" variant="ghost" onClick={() => router.push(`/clientes/${client.id}`)}>
+                                        <Eye size={16} />
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => { setSelectedClient(client); setIsModalOpen(true); }}>
                                         <Edit size={16} />
                                     </Button>
                                     <Button
@@ -86,6 +94,11 @@ export default function Clients() {
                         ))}
                 </TableBody>
             </Table>
+            <ClientModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                client={selectedClient}
+            />
         </div>
     );
 }

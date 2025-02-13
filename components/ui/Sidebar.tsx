@@ -8,9 +8,9 @@ import { motion } from "framer-motion";
 
 const menuItems = [
     { icon: Home, label: "Dashboard", href: "/dashboard" },
-    { icon: ClipboardList, label: "Servicios", href: "/servicios" },
-    { icon: Users, label: "Clientes", href: "/clientes" },
-    { icon: Bike, label: "Bicicletas", href: "/bicicletas" },
+    { icon: ClipboardList, label: "Servicios", href: "/services" },
+    { icon: Users, label: "Clientes", href: "/clients" },
+    { icon: Bike, label: "Bicicletas", href: "/bikes" },
 ];
 
 export function Sidebar() {

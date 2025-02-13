@@ -5,7 +5,7 @@ import axios from "axios";
 export const login = async (email: string, password: string) => {
   try {
     const { data } = await api.post("/auth/login", { email, password });
-    Cookies.set("token", data.token, { expires: 1 });
+    Cookies.set("token", data.accessToken, { expires: 1 });
     return data;
   } catch (error) {
     if (axios.isAxiosError(error)) {

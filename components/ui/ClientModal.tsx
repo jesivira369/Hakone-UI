@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Client } from "@/lib/types";
+import { formatPhoneNumber } from "@/lib/utils"
 
 const clientSchema = z.object({
     name: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
@@ -88,7 +89,11 @@ export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
                     </div>
                     <div>
                         <label className="block text-sm font-medium">Teléfono</label>
-                        <Input {...register("phone")} placeholder="xx-xxxx-xxxx" />
+                        <Input {...register("phone", {
+                            onChange: (e) => setValue("phone", formatPhoneNumber(e.target.value)),
+                        })}
+                            placeholder="xx-xxxx-xxxx"
+                        />
                         {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
                     </div>
                     <div>

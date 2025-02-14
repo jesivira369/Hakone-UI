@@ -12,6 +12,7 @@ import { Eye, Edit, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { DeleteModal } from "@/components/ui/DeleteModal";
+import { ServiceStatus, ServiceStatusLabels } from "@/lib/enums";
 
 export default function ServicesPage() {
     const queryClient = useQueryClient();
@@ -65,7 +66,15 @@ export default function ServicesPage() {
             ),
         },
         { accessorKey: "price", header: "Precio" },
-        { accessorKey: "status", header: "Estado" },
+        {
+            accessorKey: "status",
+            header: "Estado",
+            cell: ({ row }) => (
+                <span>
+                    {ServiceStatusLabels[row.original.status as ServiceStatus] || "Desconocido"}
+                </span>
+            ),
+        },
         { accessorKey: "mechanic.name", header: "Mecánico" },
         { accessorKey: "createdAt", header: "Fecha de creación" },
         { accessorKey: "completedAt", header: "Fecha de finalizacion" },

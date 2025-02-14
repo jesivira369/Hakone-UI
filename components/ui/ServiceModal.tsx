@@ -8,30 +8,24 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/lib/utils";
-import { Service } from "@/lib/types";
+import { Bike, Service } from "@/lib/types";
 
 const serviceSchema = z.object({
-    bicycleId: z.string().nonempty("Debe seleccionar una bicicleta"),
-    clientId: z.string().nonempty("Debe seleccionar un cliente"),
+    bicycleId: z.number().min(1, "Debe seleccionar una bicicleta"),
+    clientId: z.number().min(1, "Debe seleccionar un cliente"),
+    mechanicId: z.number().default(1), // Se inicializa en 1 por defecto
     description: z.string().min(5, "La descripción debe tener al menos 5 caracteres"),
-    price: z.string().nonempty("Debe ingresar un precio"),
+    price: z.number().min(0, "El precio debe ser un número válido"),
     partsUsed: z.record(z.string(), z.number()).optional(),
 });
 
 interface ServiceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    service?: {
-        id: number;
-        description: string;
-        price: number;
-        bicycleId: number;
-        clientId: number;
-        partsUsed?: Record<string, number>;
-    } | null;
+    service?: Service | null;
 }
 
 export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
@@ -39,6 +33,8 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [hasParts, setHasParts] = useState(!!service?.partsUsed);
     const [partsUsed, setPartsUsed] = useState<{ name: string; quantity: number }[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [bicyclesPage, setBicyclesPagePage] = useState(1);
 
     const {
         register,
@@ -46,31 +42,38 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         setValue,
         reset,
         formState: { errors },
+        watch,
     } = useForm({
         resolver: zodResolver(serviceSchema),
         defaultValues: {
-            bicycleId: "",
-            clientId: "",
+            bicycleId: 0,
+            clientId: 0,
             description: "",
-            price: "",
+            price: 0,
             partsUsed: {},
         },
     });
 
-    const { data: bicyclesData } = useQuery({
+    const {
+        data: bicyclesData,
+        fetchNextPage,
+        hasNextPage,
+    } = useInfiniteQuery<Bike[]>({
         queryKey: ["bicycles"],
-        queryFn: async () => {
-            const { data } = await api.get(`/bicycles?limit=10`);
+        queryFn: async ({ pageParam = 1 }) => {
+            const { data } = await api.get(`/bicycles?page=${pageParam}&limit=10`);
             return data;
         },
+        getNextPageParam: (lastPage) => (lastPage.length === 10 ? bicyclesPage + 1 : undefined),
+        initialPageParam: 1,
     });
 
     useEffect(() => {
         if (service) {
             setValue("description", service.description);
-            setValue("price", service.price.toString());
-            setValue("bicycleId", service.bicycleId.toString());
-            setValue("clientId", service.clientId.toString());
+            setValue("price", service.price);
+            setValue("bicycleId", service.bicycleId);
+            setValue("clientId", service.clientId);
             setHasParts(!!service.partsUsed);
             if (service.partsUsed) {
                 setPartsUsed(Object.entries(service.partsUsed).map(([name, quantity]) => ({ name, quantity })));
@@ -81,12 +84,13 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     }, [service, setValue, reset]);
 
     const mutation = useMutation({
-        mutationFn: async (data: Service) => {
-
+        mutationFn: async (data: z.infer<typeof serviceSchema>) => {
             const requestData = {
                 ...data,
-                bicycleId: Number(data.bicycleId),
-                clientId: Number(data.clientId),
+                price: parseFloat(data.price.toString()),
+                partsUsed: hasParts && partsUsed.length > 0
+                    ? Object.fromEntries(partsUsed.map((part) => [part.name, part.quantity]))
+                    : {},
             };
 
             setIsLoading(true);
@@ -105,11 +109,14 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
 
     const addPart = () => setPartsUsed([...partsUsed, { name: "", quantity: 1 }]);
     const removePart = (index: number) => setPartsUsed(partsUsed.filter((_, i) => i !== index));
-    const updatePart = (index: number, field: keyof { name: string; quantity: number }, value: any) => {
-        const updatedParts = [...partsUsed];
-        updatedParts[index][field] = value;
-        setPartsUsed(updatedParts);
+    const updatePart = (index: number, field: "name" | "quantity", value: string | number) => {
+        setPartsUsed((prevParts) => {
+            const updatedParts = [...prevParts];
+            updatedParts[index] = { ...updatedParts[index], [field]: value };
+            return updatedParts;
+        });
     };
+
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -118,29 +125,43 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                     <DialogTitle>{service ? "Editar Servicio" : "Nuevo Servicio"}</DialogTitle>
                 </DialogHeader>
                 <form
-                    onSubmit={handleSubmit((data) =>
+                    onSubmit={handleSubmit((data) => {
                         mutation.mutate({
                             ...data,
-                            price: parseFloat(data.price),
-                            partsUsed: hasParts
+                            price: parseFloat(data.price.toString()),
+                            mechanicId: 1,
+                            partsUsed: hasParts && partsUsed.length > 0
                                 ? Object.fromEntries(partsUsed.map((part) => [part.name, part.quantity]))
                                 : undefined,
-                        })
-                    )}
+                        });
+                    })}
                     className="space-y-4"
                 >
                     <div>
                         <label className="block text-sm font-medium">Bicicleta</label>
-                        <Select onValueChange={(val) => setValue("bicycleId", val)}>
+                        <Select onValueChange={(val) => {
+                            setValue("bicycleId", +val);
+                            const selectedBike = bicyclesData?.pages.flatMap((page) => page).find((bike: Bike) => bike.id.toString() === val);
+                            if (selectedBike) {
+                                setValue("clientId", selectedBike.clientId);
+                            }
+                        }}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Selecciona una bicicleta" />
                             </SelectTrigger>
-                            <SelectContent>
-                                {bicyclesData?.map((bike: any) => (
-                                    <SelectItem key={bike.id} value={bike.id.toString()}>
-                                        {bike.brand} - {bike.model} - {bike.client.name}
-                                    </SelectItem>
-                                ))}
+                            <SelectContent
+                                onScroll={(e) => {
+                                    const bottom = e.currentTarget.scrollHeight - e.currentTarget.scrollTop === e.currentTarget.clientHeight;
+                                    if (bottom && hasNextPage) fetchNextPage();
+                                }}
+                            >
+                                {bicyclesData?.pages.flatMap((page) =>
+                                    page.map((bike: Bike) => (
+                                        <SelectItem key={bike.id} value={bike.id.toString()}>
+                                            {bike.brand} - {bike.model} - {bike.client.name}
+                                        </SelectItem>
+                                    ))
+                                )}
                             </SelectContent>
                         </Select>
                         {errors.bicycleId && <p className="text-red-500 text-sm">{errors.bicycleId.message}</p>}
@@ -175,7 +196,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                     </Button>
                                 </div>
                             ))}
-                            <Button onClick={addPart}>Agregar repuesto</Button>
+                            <Button type="button" onClick={addPart}>Agregar repuesto</Button>
                         </div>
                     )}
                     <div>
@@ -183,8 +204,8 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                         <div className="relative">
                             <Input
                                 type="text"
-                                {...register("price")}
-                                onChange={(e) => setValue("price", formatCurrency(e.target.value))}
+                                value={formatCurrency(watch("price"))}
+                                onChange={(e) => setValue("price", parseFloat(e.target.value) || 0)}
                             />
                             <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">USD</span>
                         </div>

@@ -1,12 +1,10 @@
-export function formatCurrency(value: string) {
-  const numericValue = value.replace(/[^0-9.]/g, "");
+export function formatCurrency(value: number | string): string {
+  const numericValue =
+    typeof value === "string"
+      ? parseFloat(value.replace(/[^0-9.]/g, ""))
+      : value;
 
-  const formattedValue = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(parseFloat(numericValue) || 0);
+  if (isNaN(numericValue)) return "0.00";
 
-  return formattedValue.replace("$", "");
+  return numericValue.toFixed(2);
 }

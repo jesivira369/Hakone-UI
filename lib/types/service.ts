@@ -6,13 +6,13 @@ export interface Service {
   description: string;
   price: number;
   status: string;
-  bicycle: Bike;
+  bicycle?: Bike;
   clientId: number;
   bicycleId: number;
-  client: Client;
-  mechanic: any;
+  client?: Client;
+  mechanicId: any;
   createdAt: string;
   updatedAt: string;
   completedAt: string;
-  partsUsed: any;
+  partsUsed?: Record<string, number> | null;
 }

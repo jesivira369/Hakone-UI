@@ -139,13 +139,14 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                 >
                     <div>
                         <label className="block text-sm font-medium">Bicicleta</label>
-                        <Select onValueChange={(val) => {
-                            setValue("bicycleId", +val);
-                            const selectedBike = bicyclesData?.pages.flatMap((page) => page).find((bike: Bike) => bike.id.toString() === val);
-                            if (selectedBike) {
-                                setValue("clientId", selectedBike.clientId);
-                            }
-                        }}>
+                        <Select
+                            onValueChange={(val) => {
+                                setValue("bicycleId", +val);
+                                const selectedBike = bicyclesData?.pages.flatMap((page) => page).find((bike: Bike) => bike.id.toString() === val);
+                                if (selectedBike) {
+                                    setValue("clientId", selectedBike.clientId);
+                                }
+                            }}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Selecciona una bicicleta" />
                             </SelectTrigger>

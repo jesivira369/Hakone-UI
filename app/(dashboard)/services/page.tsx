@@ -44,7 +44,17 @@ export default function ServicesPage() {
 
     const columns: ColumnDef<Service>[] = [
         { accessorKey: "client.name", header: "Cliente" },
-        { accessorKey: "bicycle.brand", header: "Bicicleta" },
+        {
+            header: "Bicicleta",
+            cell: ({ row }) => {
+                const bike = row.original.bicycle;
+                return (
+                    <div>
+                        {bike?.brand} {bike?.model}
+                    </div>
+                );
+            },
+        },
         {
             accessorKey: "description",
             header: "Descripción",

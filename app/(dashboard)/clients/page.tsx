@@ -49,7 +49,7 @@ export default function ClientsPage() {
         {
             header: "Acciones",
             cell: ({ row }) => (
-                <div className="flex gap-2">
+                <div className="flex justify-end gap-2">
                     <Button size="sm" variant="ghost" onClick={() => router.push(`/clientes/${row.original.id}`)}>
                         <Eye size={16} />
                     </Button>
@@ -70,7 +70,7 @@ export default function ClientsPage() {
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold mb-4">Clientes</h1>
-            <div className="flex justify-between mb-4">
+            <div className="flex justify-between mb-4 gap-4">
                 <Input
                     placeholder="Buscar cliente..."
                     value={search}

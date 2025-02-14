@@ -12,6 +12,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/lib/utils";
 import { Bike, Service } from "@/lib/types";
+import { Plus, Trash } from "lucide-react";
 
 const serviceSchema = z.object({
     bicycleId: z.number().min(1, "Debe seleccionar una bicicleta"),
@@ -172,11 +173,12 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                         {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
                     </div>
 
-                    <div>
-                        <input type="checkbox" checked={hasParts} onChange={() => setHasParts(!hasParts)} /> Agregar repuestos
+                    <div className="flex justify-end items-center gap-4">
+                        <label className="block text-sm font-medium">Agregar repuestos</label>
+                        <input type="checkbox" checked={hasParts} onChange={() => setHasParts(!hasParts)} className="w-5 h-5" />
                     </div>
                     {hasParts && (
-                        <div>
+                        <div className="space-y-2">
                             {partsUsed.map((part, index) => (
                                 <div key={index} className="flex gap-2 items-center">
                                     <Input
@@ -190,12 +192,16 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                         value={part.quantity}
                                         onChange={(e) => updatePart(index, "quantity", Number(e.target.value))}
                                     />
-                                    <Button variant="destructive" onClick={() => removePart(index)}>
-                                        Eliminar
+                                    <Button variant="destructive" type="button" size="sm" onClick={() => removePart(index)}>
+                                        <Trash size={14} />
                                     </Button>
                                 </div>
                             ))}
-                            <Button type="button" onClick={addPart}>Agregar repuesto</Button>
+                            <div className="flex justify-end">
+                                <Button type="button" variant="outline" size="sm" className="flex items-center self-end mt-2" onClick={addPart}>
+                                    <Plus size={16} />
+                                </Button>
+                            </div>
                         </div>
                     )}
                     <div>

@@ -113,7 +113,7 @@ export default function Bikes() {
                     isOpen={deleteModalOpen}
                     onClose={() => setDeleteModalOpen(false)}
                     onDelete={() => deleteMutation.mutate(selectedBike.id)}
-                    itemName="cliente"
+                    itemName="bicicleta"
                 />
             )}
         </div>

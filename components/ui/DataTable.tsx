@@ -32,13 +32,13 @@ export function DataTable<TData>({ columns, data, page, setPage, limit, setLimit
     });
 
     return (
-        <div>
-            <Table>
+        <div className="w-full">
+            <Table className="w-full">
                 <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow key={headerGroup.id}>
-                            {headerGroup.headers.map((header) => (
-                                <TableCell key={header.id}>
+                            {headerGroup.headers.map((header, index) => (
+                                <TableCell key={header.id} className={`font-semibold ${index === headerGroup.headers.length - 1 ? 'text-right' : ''}`}>
                                     {flexRender(header.column.columnDef.header, header.getContext())}
                                 </TableCell>
                             ))}
@@ -48,8 +48,8 @@ export function DataTable<TData>({ columns, data, page, setPage, limit, setLimit
                 <TableBody>
                     {table.getRowModel().rows.map((row) => (
                         <TableRow key={row.id}>
-                            {row.getVisibleCells().map((cell) => (
-                                <TableCell key={cell.id}>
+                            {row.getVisibleCells().map((cell, index) => (
+                                <TableCell key={cell.id} className={`${index === row.getVisibleCells().length - 1 ? 'text-right' : ''}`}>
                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                 </TableCell>
                             ))}
@@ -57,12 +57,11 @@ export function DataTable<TData>({ columns, data, page, setPage, limit, setLimit
                     ))}
                 </TableBody>
             </Table>
-            {/* Paginación */}
-            <div className="flex justify-between items-center mt-4">
-                <div>
-                    <span>Resultados por página: </span>
+            <div className="flex justify-between items-center mt-4 p-4 border-t border-border w-full">
+                <div className="flex items-center gap-2">
+                    <p className="whitespace-nowrap">Resultados por página:</p>
                     <Select value={limit.toString()} onValueChange={(val) => setLimit(Number(val))}>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-20">
                             <SelectValue placeholder="Selecciona" />
                         </SelectTrigger>
                         <SelectContent>
@@ -74,12 +73,12 @@ export function DataTable<TData>({ columns, data, page, setPage, limit, setLimit
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="flex gap-2">
-                    <Button onClick={() => setPage(page - 1)} disabled={page === 1}>
+                <div className="flex items-center gap-6">
+                    <Button variant="outline" className="px-6" onClick={() => setPage(page - 1)} disabled={page === 1}>
                         Anterior
                     </Button>
-                    <span>Página {page} de {Math.ceil(total / limit)}</span>
-                    <Button onClick={() => setPage(page + 1)} disabled={page * limit >= total}>
+                    <p className="text-sm">Página {page} de {Math.ceil(total / limit)}</p>
+                    <Button variant="outline" className="px-6" onClick={() => setPage(page + 1)} disabled={page * limit >= total}>
                         Siguiente
                     </Button>
                 </div>

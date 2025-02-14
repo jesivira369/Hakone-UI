@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { DataTable } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/button";
-import { ServiceModal } from "@/components/modals/ServiceModal";
+import { ServiceModal } from "@/components/ui/ServiceModal";
 import api from "@/lib/axiosInstance";
 import { ColumnDef } from "@tanstack/react-table";
 import { Service } from "@/lib/types";
@@ -44,10 +44,31 @@ export default function ServicesPage() {
     const columns: ColumnDef<Service>[] = [
         { accessorKey: "client.name", header: "Cliente" },
         { accessorKey: "bicycle.brand", header: "Bicicleta" },
-        { accessorKey: "description", header: "Descripción" },
+        {
+            accessorKey: "description",
+            header: "Descripción",
+            cell: ({ row }) => {
+                const description = row.original.description;
+                return (
+                    <div title={description} className="truncate w-40">
+                        {description.length > 50 ? description.slice(0, 50) + "..." : description}
+                    </div>
+                );
+            },
+        },
+        {
+            header: "Repuestos Usados",
+            cell: ({ row }) => (
+                <div>
+                    {row.original.partsUsed ? Object.keys(row.original.partsUsed).length : 0}
+                </div>
+            ),
+        },
         { accessorKey: "price", header: "Precio" },
         { accessorKey: "status", header: "Estado" },
         { accessorKey: "mechanic.name", header: "Mecánico" },
+        { accessorKey: "createdAt", header: "Fecha de creación" },
+        { accessorKey: "completedAt", header: "Fecha de finalizacion" },
         {
             header: "Acciones",
             cell: ({ row }) => (

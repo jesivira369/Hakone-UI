@@ -1,3 +1,5 @@
+import { Bike } from "./bikes";
+
 export interface Client {
   id: number;
   name: string;
@@ -5,7 +7,7 @@ export interface Client {
   email: string;
   createdAt: string;
   updatedAt: string;
-  bicycles: any[];
+  bicycles: Bike[];
   services: any[];
   userId: number;
 }

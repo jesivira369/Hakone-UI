@@ -16,9 +16,9 @@ import { Bike, Service } from "@/lib/types";
 const serviceSchema = z.object({
     bicycleId: z.number().min(1, "Debe seleccionar una bicicleta"),
     clientId: z.number().min(1, "Debe seleccionar un cliente"),
-    mechanicId: z.number().default(1), // Se inicializa en 1 por defecto
+    mechanicId: z.number().default(1),
     description: z.string().min(5, "La descripción debe tener al menos 5 caracteres"),
-    price: z.number().min(0, "El precio debe ser un número válido"),
+    price: z.number().min(1, "El precio debe ser un número válido"),
     partsUsed: z.record(z.string(), z.number()).optional(),
 });
 
@@ -116,7 +116,6 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             return updatedParts;
         });
     };
-
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>

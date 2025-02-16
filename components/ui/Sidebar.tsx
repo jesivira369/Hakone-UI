@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bike, ClipboardList, Home, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Bike, ClipboardList, Home, Users, ChevronLeft, ChevronRight, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
 
 const menuItems = [
@@ -10,6 +10,7 @@ const menuItems = [
     { icon: ClipboardList, label: "Servicios", href: "/services" },
     { icon: Users, label: "Clientes", href: "/clients" },
     { icon: Bike, label: "Bicicletas", href: "/bikes" },
+    { icon: Wrench, label: "Mecánicos", href: "/mechanics" },
 ];
 
 interface SidebarProps {

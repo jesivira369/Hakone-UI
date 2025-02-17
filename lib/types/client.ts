@@ -1,4 +1,5 @@
 import { Bike } from "./bikes";
+import { Service } from "./service";
 
 export interface Client {
   id: number;
@@ -8,6 +9,6 @@ export interface Client {
   createdAt: string;
   updatedAt: string;
   bicycles: Bike[];
-  services: any[];
+  services: Service[];
   userId: number;
 }

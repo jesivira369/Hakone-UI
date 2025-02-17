@@ -92,7 +92,7 @@ export default function ServicesPage() {
             header: "Acciones",
             cell: ({ row }) => (
                 <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => router.push(`/bikes/${row.original.id}`)}>
+                    <Button size="sm" variant="ghost" onClick={() => router.push(`/services/${row.original.id}`)}>
                         <Eye size={16} />
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => { setSelectedService(row.original); setModalOpen(true); }}>

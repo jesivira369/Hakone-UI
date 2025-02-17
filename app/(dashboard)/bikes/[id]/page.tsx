@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Edit, Eye } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BicycleModal } from "@/components/ui/BikeModal";
 
@@ -80,12 +80,12 @@ export default function BikeDetailPage() {
         {
             accessorKey: "createdAt",
             header: "Fecha de Creación",
-            cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+            cell: ({ row }) => formatDate(row.original.createdAt),
         },
         {
             accessorKey: "completedAt",
             header: "Fecha de Finalización",
-            cell: ({ row }) => row.original.completedAt ? new Date(row.original.completedAt).toLocaleDateString() : "N/A",
+            cell: ({ row }) => row.original.completedAt ? formatDate(row.original.completedAt) : "N/A",
         },
         {
             header: "Acciones",
@@ -116,8 +116,8 @@ export default function BikeDetailPage() {
                     <CardContent>
                         <p><strong>Marca:</strong> {bikeData.brand}</p>
                         <p><strong>Modelo:</strong> {bikeData.model}</p>
-                        <p><strong>Registrada el:</strong> {new Date(bikeData.createdAt).toLocaleDateString()}</p>
-                        <p><strong>Última actualización:</strong> {new Date(bikeData.updatedAt).toLocaleDateString()}</p>
+                        <p><strong>Registrada el:</strong> {formatDate(bikeData.createdAt)}</p>
+                        <p><strong>Última actualización:</strong> {formatDate(bikeData.updatedAt)}</p>
                     </CardContent>
                 </Card>
 

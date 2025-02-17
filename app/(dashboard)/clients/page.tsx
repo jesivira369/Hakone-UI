@@ -50,7 +50,7 @@ export default function ClientsPage() {
             header: "Acciones",
             cell: ({ row }) => (
                 <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => router.push(`/clientes/${row.original.id}`)}>
+                    <Button size="sm" variant="ghost" onClick={() => router.push(`/clients/${row.original.id}`)}>
                         <Eye size={16} />
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => { setSelectedClient(row.original); setModalOpen(true); }}>

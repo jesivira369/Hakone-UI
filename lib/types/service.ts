@@ -1,5 +1,6 @@
 import { Bike } from "./bikes";
 import { Client } from "./client";
+import { Mechanic } from "./mechanic";
 
 export interface Service {
   id: number;
@@ -10,7 +11,8 @@ export interface Service {
   clientId: number;
   bicycleId: number;
   client?: Client;
-  mechanicId: any;
+  mechanic?: Mechanic;
+  mechanicId: number;
   createdAt: string;
   updatedAt: string;
   completedAt: string;

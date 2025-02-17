@@ -4,12 +4,19 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Service } from "@/lib/types";
+import { ServiceStatus } from "@/lib/enums";
 import { formatCurrency } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Edit } from "lucide-react";
+import { useState } from "react";
+import { ServiceModal } from "@/components/ui/ServiceModal";
+import { ServiceStatusUpdater } from "@/components/ui/ServiceStatusUpdater";
 
 export default function ServiceDetails() {
     const { id: serviceId } = useParams();
+    const [editModalOpen, setEditModalOpen] = useState(false);
 
     const { data: service, isLoading, error } = useQuery<Service>({
         queryKey: ["service", serviceId],
@@ -38,7 +45,12 @@ export default function ServiceDetails() {
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6">Detalles del Servicio</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Detalles del Servicio</h1>
+                <Button variant="outline" onClick={() => setEditModalOpen(true)}>
+                    <Edit size={16} className="mr-2" /> Editar Servicio
+                </Button>
+            </div>
 
             <Card className="mb-6">
                 <CardHeader>
@@ -49,10 +61,8 @@ export default function ServiceDetails() {
                         <p className="text-gray-500">Descripción:</p>
                         <p className="font-medium">{service.description}</p>
                     </div>
-                    <div>
-                        <p className="text-gray-500">Estado:</p>
-                        <p className="font-medium">{service.status}</p>
-                    </div>
+                    <ServiceStatusUpdater serviceId={service.id} currentStatus={service.status as ServiceStatus} />
+
                     <div>
                         <p className="text-gray-500">Precio:</p>
                         <p className="font-medium">{formatCurrency(service.price)}</p>
@@ -113,6 +123,14 @@ export default function ServiceDetails() {
                     </CardContent>
                 </Card>
             </div>
+
+            {editModalOpen && (
+                <ServiceModal
+                    isOpen={editModalOpen}
+                    onClose={() => setEditModalOpen(false)}
+                    service={service}
+                />
+            )}
         </div>
     );
 }

@@ -12,6 +12,7 @@ import { Eye, Edit, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { formatDate } from "@/lib/utils";
 
 export default function Bikes() {
     const queryClient = useQueryClient();
@@ -52,7 +53,7 @@ export default function Bikes() {
         {
             accessorKey: "lastServiceDate",
             header: "Último Servicio",
-            cell: ({ row }) => row.original.lastServiceDate ? new Date(row.original.lastServiceDate).toLocaleDateString() : "Sin registro"
+            cell: ({ row }) => row.original.lastServiceDate ? formatDate(row.original.lastServiceDate) : "Sin registro"
         },
         {
             accessorKey: "services.length",

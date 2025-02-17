@@ -40,7 +40,6 @@ export default function ServiceDetails() {
         <div className="p-6">
             <h1 className="text-2xl font-bold mb-6">Detalles del Servicio</h1>
 
-            {/* Información General del Servicio */}
             <Card className="mb-6">
                 <CardHeader>
                     <CardTitle>Información del Servicio</CardTitle>

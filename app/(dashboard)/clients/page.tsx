@@ -12,6 +12,7 @@ import { DeleteModal } from "@/components/ui/DeleteModal";
 import { ClientModal } from "@/components/ui/ClientModal";
 import { DataTable } from "@/components/ui/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
+import { formatDate } from "@/lib/utils";
 
 export default function ClientsPage() {
     const queryClient = useQueryClient();
@@ -46,6 +47,7 @@ export default function ClientsPage() {
         { accessorKey: "email", header: "Email" },
         { accessorKey: "phone", header: "Teléfono" },
         { accessorKey: "bicycles.length", header: "Bicicletas" },
+        { accessorKey: "createdAt", header: "Fecha de Creación", cell: ({ row }) => formatDate(row.original.createdAt), },
         {
             header: "Acciones",
             cell: ({ row }) => (

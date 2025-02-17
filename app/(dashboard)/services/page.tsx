@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { DeleteModal } from "@/components/ui/DeleteModal";
 import { ServiceStatus, ServiceStatusLabels } from "@/lib/enums";
+import { formatDate } from "@/lib/utils";
 
 export default function ServicesPage() {
     const queryClient = useQueryClient();
@@ -86,8 +87,8 @@ export default function ServicesPage() {
             ),
         },
         { accessorKey: "mechanic.name", header: "Mecánico" },
-        { accessorKey: "createdAt", header: "Fecha de creación" },
-        { accessorKey: "completedAt", header: "Fecha de finalizacion" },
+        { accessorKey: "createdAt", header: "Fecha de creación", cell: ({ row }) => formatDate(row.original.createdAt), },
+        { accessorKey: "completedAt", header: "Fecha de finalizacion", cell: ({ row }) => formatDate(row.original.completedAt), },
         {
             header: "Acciones",
             cell: ({ row }) => (

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Service } from "@/lib/types";
 import { ServiceStatus } from "@/lib/enums";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -69,12 +69,12 @@ export default function ServiceDetails() {
                     </div>
                     <div>
                         <p className="text-gray-500">Fecha de Creación:</p>
-                        <p className="font-medium">{new Date(service.createdAt).toLocaleDateString()}</p>
+                        <p className="font-medium">{formatDate(service.createdAt)}</p>
                     </div>
                     {service.completedAt && (
                         <div>
                             <p className="text-gray-500">Fecha de Finalización:</p>
-                            <p className="font-medium">{new Date(service.completedAt).toLocaleDateString()}</p>
+                            <p className="font-medium">{formatDate(service.completedAt)}</p>
                         </div>
                     )}
                 </CardContent>

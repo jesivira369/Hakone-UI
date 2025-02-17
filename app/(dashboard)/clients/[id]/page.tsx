@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Edit, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ClientModal } from "@/components/ui/ClientModal";
+import { formatDate } from "@/lib/utils";
 
 export default function ClientDetailPage() {
     const { id: clientId } = useParams();
@@ -46,12 +47,12 @@ export default function ClientDetailPage() {
         {
             accessorKey: "createdAt",
             header: "Fecha de Registro",
-            cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+            cell: ({ row }) => formatDate(row.original.createdAt),
         },
         {
             accessorKey: "lastServiceDate",
             header: "Último Servicio",
-            cell: ({ row }) => row.original.lastServiceDate ? new Date(row.original.lastServiceDate).toLocaleDateString() : "Sin registro"
+            cell: ({ row }) => row.original.lastServiceDate ? formatDate(row.original.lastServiceDate) : "Sin registro"
         },
         {
             header: "Acciones",
@@ -90,8 +91,8 @@ export default function ClientDetailPage() {
                         <CardTitle>Datos Generales</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p><strong>Registrado el:</strong> {new Date(clientData.createdAt).toLocaleDateString()}</p>
-                        <p><strong>Última actualización:</strong> {new Date(clientData.updatedAt).toLocaleDateString()}</p>
+                        <p><strong>Registrado el:</strong> {formatDate(clientData.updatedAt)}</p>
+                        <p><strong>Última actualización:</strong> {formatDate(clientData.updatedAt)}</p>
                     </CardContent>
                 </Card>
 

@@ -11,6 +11,7 @@ import { Edit, Trash } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Mechanic } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
 
 export default function Mechanics() {
     const queryClient = useQueryClient();
@@ -44,7 +45,7 @@ export default function Mechanics() {
         {
             accessorKey: "createdAt",
             header: "Fecha de Creación",
-            cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString()
+            cell: ({ row }) => formatDate(row.original.createdAt),
         },
         {
             header: "Acciones",

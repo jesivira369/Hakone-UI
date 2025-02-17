@@ -11,13 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/lib/utils";
-import { Bike, Service } from "@/lib/types";
+import { Bike, Mechanic, Service } from "@/lib/types";
 import { Plus, Trash } from "lucide-react";
 
 const serviceSchema = z.object({
     bicycleId: z.number().min(1, "Debe seleccionar una bicicleta"),
     clientId: z.number().min(1, "Debe seleccionar un cliente"),
-    mechanicId: z.number().default(1),
+    mechanicId: z.number().min(1, "Debe seleccionar un mecanico"),
     description: z.string().min(5, "La descripción debe tener al menos 5 caracteres"),
     price: z.number().min(1, "El precio debe ser un número válido"),
     partsUsed: z.record(z.string(), z.number()).optional(),
@@ -36,6 +36,8 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     const [partsUsed, setPartsUsed] = useState<{ name: string; quantity: number }[]>([]);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [bicyclesPage, setBicyclesPagePage] = useState(1);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [mechanicsPage, setMechanicsPage] = useState(1)
 
     const {
         register,
@@ -49,6 +51,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         defaultValues: {
             bicycleId: 0,
             clientId: 0,
+            mechanicId: 0,
             description: "",
             price: 0,
             partsUsed: {},
@@ -69,12 +72,27 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         initialPageParam: 1,
     });
 
+    const {
+        data: mechanicsData,
+        fetchNextPage: fetchNextMechanicsPage,
+        hasNextPage: hasNextMechanicsPage,
+    } = useInfiniteQuery<Mechanic[]>({
+        queryKey: ["mechanics"],
+        queryFn: async ({ pageParam = 1 }) => {
+            const { data } = await api.get(`/mechanics?page=${pageParam}&limit=10`);
+            return data;
+        },
+        getNextPageParam: (lastPage) => (lastPage.length === 10 ? mechanicsPage + 1 : undefined),
+        initialPageParam: 1,
+    });
+
     useEffect(() => {
         if (service) {
             setValue("description", service.description);
             setValue("price", service.price);
             setValue("bicycleId", service.bicycleId);
             setValue("clientId", service.clientId);
+            setValue("mechanicId", service.mechanicId);
             setHasParts(!!service.partsUsed);
             if (service.partsUsed) {
                 setPartsUsed(Object.entries(service.partsUsed).map(([name, quantity]) => ({ name, quantity })));
@@ -86,6 +104,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
 
     const mutation = useMutation({
         mutationFn: async (data: z.infer<typeof serviceSchema>) => {
+
             const requestData = {
                 ...data,
                 price: parseFloat(data.price.toString()),
@@ -129,7 +148,6 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                         mutation.mutate({
                             ...data,
                             price: parseFloat(data.price.toString()),
-                            mechanicId: 1,
                             partsUsed: hasParts && partsUsed.length > 0
                                 ? Object.fromEntries(partsUsed.map((part) => [part.name, part.quantity]))
                                 : undefined,
@@ -166,6 +184,33 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                             </SelectContent>
                         </Select>
                         {errors.bicycleId && <p className="text-red-500 text-sm">{errors.bicycleId.message}</p>}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium">Mecanico</label>
+                        <Select
+                            onValueChange={(val) => {
+                                setValue("mechanicId", +val);
+                            }}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecciona un mecanico" />
+                            </SelectTrigger>
+                            <SelectContent
+                                onScroll={(e) => {
+                                    const bottom = e.currentTarget.scrollHeight - e.currentTarget.scrollTop === e.currentTarget.clientHeight;
+                                    if (bottom && hasNextMechanicsPage) fetchNextMechanicsPage();
+                                }}
+                            >
+                                {mechanicsData?.pages.flatMap((page) =>
+                                    page.map((mechanic: Mechanic) => (
+                                        <SelectItem key={mechanic.id} value={mechanic.id.toString()}>
+                                            {mechanic.name}
+                                        </SelectItem>
+                                    ))
+                                )}
+                            </SelectContent>
+                        </Select>
+                        {errors.mechanicId && <p className="text-red-500 text-sm">{errors.mechanicId.message}</p>}
                     </div>
 
                     <div>

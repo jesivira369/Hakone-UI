@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import Image from "next/image";
 
 export function Header() {
     const router = useRouter();
@@ -18,7 +19,16 @@ export function Header() {
     return (
         <header className="bg-background border-b">
             <div className="flex items-center justify-between px-6 py-4">
-                <h1 className="text-2xl font-semibold text-foreground">Hakone</h1>
+                <div className="flex items-center">
+                    <Image
+                        src="/HakoneLogo.png"
+                        alt="Hakone Services Logo"
+                        width={150}
+                        height={50}
+                        className="h-10 w-auto"
+                    />
+                </div>
+
                 <div className="flex items-center space-x-4">
                     <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
                         <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

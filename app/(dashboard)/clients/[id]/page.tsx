@@ -113,10 +113,10 @@ export default function ClientDetailPage() {
                 <h2 className="text-xl font-semibold mb-4">Bicicletas del Cliente</h2>
                 <DataTable
                     columns={bicycleColumns}
-                    data={clientData.bicycles}
+                    data={bikesData?.data}
                     page={page}
                     limit={limit}
-                    total={bikesData?.total}
+                    total={bikesData?.totalItems}
                     setPage={setPage}
                     setLimit={setLimit}
                 />

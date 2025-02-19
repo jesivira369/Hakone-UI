@@ -95,12 +95,12 @@ export default function Bikes() {
             </div>
             <DataTable
                 columns={columns}
-                data={bikesData ?? []}
+                data={bikesData?.data ?? []}
                 page={page}
                 setPage={setPage}
                 limit={limit}
                 setLimit={setLimit}
-                total={bikesData?.total}
+                total={bikesData?.totalItems}
             />
             {modalOpen && (
                 <BicycleModal

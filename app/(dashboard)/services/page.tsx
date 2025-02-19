@@ -123,12 +123,13 @@ export default function ServicesPage() {
             </div>
             <DataTable
                 columns={columns}
-                data={servicesData ?? []}
+                data={servicesData.data ?? []}
                 page={page}
                 setPage={setPage}
                 limit={limit}
                 setLimit={setLimit}
                 total={servicesData?.total}
+                totalPage={servicesData?.totalPages}
             />
             {modalOpen && (
                 <ServiceModal

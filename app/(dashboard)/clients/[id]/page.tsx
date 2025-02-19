@@ -119,6 +119,7 @@ export default function ClientDetailPage() {
                     total={bikesData?.totalItems}
                     setPage={setPage}
                     setLimit={setLimit}
+                    totalPage={bikesData?.totalPages}
                 />
             </div>
 

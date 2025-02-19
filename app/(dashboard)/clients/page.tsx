@@ -82,12 +82,13 @@ export default function ClientsPage() {
             </div>
             <DataTable
                 columns={columns}
-                data={clientsData ?? []}
+                data={clientsData.data ?? []}
                 page={page}
                 setPage={setPage}
                 limit={limit}
                 setLimit={setLimit}
-                total={clientsData?.total}
+                total={clientsData?.totalItems}
+                totalPage={clientsData?.totalPages}
             />
             {modalOpen && (
                 <ClientModal

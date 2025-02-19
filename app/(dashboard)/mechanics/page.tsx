@@ -78,12 +78,13 @@ export default function Mechanics() {
             </div>
             <DataTable
                 columns={columns}
-                data={mechanicsData ?? []}
+                data={mechanicsData.data ?? []}
                 page={page}
                 setPage={setPage}
                 limit={limit}
                 setLimit={setLimit}
-                total={mechanicsData?.total}
+                total={mechanicsData?.totalItems}
+                totalPage={mechanicsData?.totalPages}
             />
             {modalOpen && (
                 <MechanicModal

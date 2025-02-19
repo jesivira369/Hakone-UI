@@ -19,16 +19,17 @@ interface DataTableProps<TData> {
     limit: number;
     setLimit: (limit: number) => void;
     total: number;
+    totalPage: number;
 }
 
-export function DataTable<TData>({ columns, data, page, setPage, limit, setLimit, total }: DataTableProps<TData>) {
+export function DataTable<TData>({ columns, data, page, setPage, limit, setLimit, total, totalPage }: DataTableProps<TData>) {
     const table = useReactTable({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         manualPagination: true,
-        pageCount: Math.ceil(total / limit),
+        pageCount: totalPage,
     });
 
     return (

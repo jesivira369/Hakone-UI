@@ -8,7 +8,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Edit, Eye } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +38,11 @@ export default function BikeDetailPage() {
         },
         enabled: !!bikeId
     });
+
+    useEffect(() => {
+        console.log(servicesData?.totalPages)
+    }, [servicesData?.totalPages])
+
 
     if (isLoading) {
         return (
@@ -138,12 +143,13 @@ export default function BikeDetailPage() {
                 {isServiceLoading ? <p>Cargando servicios...</p> : isServiceError ? <p>Error al cargar los servicios.</p> : (
                     <DataTable
                         columns={serviceColumns}
-                        data={servicesData ?? []}
+                        data={servicesData.data ?? []}
                         page={page}
                         limit={limit}
                         total={servicesData?.total}
                         setPage={setPage}
                         setLimit={setLimit}
+                        totalPage={servicesData?.totalPages}
                     />
                 )}
             </div>

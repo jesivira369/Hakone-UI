@@ -101,6 +101,7 @@ export default function Bikes() {
                 limit={limit}
                 setLimit={setLimit}
                 total={bikesData?.totalItems}
+                totalPage={bikesData?.totalPages}
             />
             {modalOpen && (
                 <BicycleModal

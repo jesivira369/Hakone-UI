@@ -13,3 +13,11 @@ export interface Bike {
   services: Service[];
   userId: number;
 }
+
+export interface BikeQuery {
+  data: Bike[];
+  limit: number;
+  page: number;
+  totalItems: number;
+  totalPages: number;
+}

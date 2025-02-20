@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,6 +13,11 @@ import Image from "next/image";
 export function Header() {
     const router = useRouter();
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const { theme, setTheme } = useTheme()
 
@@ -20,13 +25,15 @@ export function Header() {
         <header className="bg-background border-b">
             <div className="flex items-center justify-between px-6 py-4">
                 <div className="flex items-center">
-                    <Image
-                        src="/HakoneLogo.png"
-                        alt="Hakone Services Logo"
-                        width={150}
-                        height={50}
-                        className="h-10 w-auto"
-                    />
+                    {mounted && (
+                        <Image
+                            src={theme === "dark" ? "/HakoneLogoBlanco.svg" : "/HakoneLogo.png"}
+                            alt="Hakone Services Logo"
+                            width={150}
+                            height={50}
+                            className="h-10 w-auto"
+                        />
+                    )}
                 </div>
 
                 <div className="flex items-center space-x-4">

@@ -4,6 +4,7 @@ import { Providers } from './providers';
 import "./globals.css";
 import "./globals.css"
 import { ThemeProvider } from "../components/theme/theme-provider";
+import { AuthProvider } from "@/context/auth-provider";
 
 export const metadata: Metadata = {
   title: "Hakone - Gestión de Taller de Bicicletas",
@@ -20,11 +21,13 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <Providers>
-            {children}
-          </Providers>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <Providers>
+              {children}
+            </Providers>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

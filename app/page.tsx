@@ -2,19 +2,20 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated } from '@/lib/auth';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/auth-provider';
 
 export default function Home() {
   const router = useRouter();
+  const { token } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      router.push('/dashboard');
+    if (token) {
+      router.push("/dashboard");
     } else {
-      router.push('/login');
+      router.push("/login");
     }
-  }, []);
+  }, [token, router]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

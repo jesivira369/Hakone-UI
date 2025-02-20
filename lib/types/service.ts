@@ -18,3 +18,11 @@ export interface Service {
   completedAt: string;
   partsUsed?: Record<string, number> | null;
 }
+
+export interface ServiceQuery {
+  data: Service[];
+  limit: number;
+  page: number;
+  totalItems: number;
+  totalPages: number;
+}

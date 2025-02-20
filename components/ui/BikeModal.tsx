@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMutation, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
-import { Client, Bike } from "@/lib/types";
+import { Client, Bike, ClientQuery } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const bicycleSchema = z.object({
@@ -55,13 +55,13 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
         data: clientsData,
         fetchNextPage,
         hasNextPage,
-    } = useInfiniteQuery<Client[]>({
+    } = useInfiniteQuery<ClientQuery>({
         queryKey: ["clients"],
         queryFn: async ({ pageParam = 1 }) => {
             const { data } = await api.get(`/clients?page=${pageParam}&limit=10`);
             return data;
         },
-        getNextPageParam: (lastPage) => (lastPage.length === 10 ? clientPage + 1 : undefined),
+        getNextPageParam: (lastPage) => (lastPage.data.length === 10 ? clientPage + 1 : undefined),
         initialPageParam: 1,
     });
 
@@ -126,7 +126,7 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
                                 }}
                             >
                                 {clientsData?.pages.flatMap((page) =>
-                                    page.map((client: Client) => (
+                                    page.data.map((client: Client) => (
                                         <SelectItem key={client.id} value={client.id.toString()}>
                                             {client.name} - {client.email}
                                         </SelectItem>

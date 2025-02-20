@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/lib/utils";
-import { Bike, Mechanic, Service } from "@/lib/types";
+import { Bike, BikeQuery, Mechanic, MechanicQuery, Service } from "@/lib/types";
 import { Plus, Trash } from "lucide-react";
 
 const serviceSchema = z.object({
@@ -60,15 +60,16 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
 
     const {
         data: bicyclesData,
-        fetchNextPage,
-        hasNextPage,
-    } = useInfiniteQuery<Bike[]>({
+        fetchNextPage: fetchNextBicyclePage,
+        hasNextPage: hasNextBicyclePage,
+    } = useInfiniteQuery<BikeQuery>({
         queryKey: ["bicycles"],
         queryFn: async ({ pageParam = 1 }) => {
             const { data } = await api.get(`/bicycles?page=${pageParam}&limit=10`);
             return data;
         },
-        getNextPageParam: (lastPage) => (lastPage.length === 10 ? bicyclesPage + 1 : undefined),
+        getNextPageParam: (lastPage) =>
+            lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
         initialPageParam: 1,
     });
 
@@ -76,15 +77,17 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         data: mechanicsData,
         fetchNextPage: fetchNextMechanicsPage,
         hasNextPage: hasNextMechanicsPage,
-    } = useInfiniteQuery<Mechanic[]>({
+    } = useInfiniteQuery<MechanicQuery>({
         queryKey: ["mechanics"],
         queryFn: async ({ pageParam = 1 }) => {
             const { data } = await api.get(`/mechanics?page=${pageParam}&limit=10`);
             return data;
         },
-        getNextPageParam: (lastPage) => (lastPage.length === 10 ? mechanicsPage + 1 : undefined),
+        getNextPageParam: (lastPage) =>
+            lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
         initialPageParam: 1,
     });
+
 
     useEffect(() => {
         if (service) {
@@ -160,7 +163,9 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                         <Select
                             onValueChange={(val) => {
                                 setValue("bicycleId", +val);
-                                const selectedBike = bicyclesData?.pages.flatMap((page) => page).find((bike: Bike) => bike.id.toString() === val);
+                                const selectedBike = bicyclesData?.pages
+                                    .flatMap((page) => page.data)
+                                    .find((bike: Bike) => bike.id.toString() === val);
                                 if (selectedBike) {
                                     setValue("clientId", selectedBike.clientId);
                                 }
@@ -171,13 +176,13 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                             <SelectContent
                                 onScroll={(e) => {
                                     const bottom = e.currentTarget.scrollHeight - e.currentTarget.scrollTop === e.currentTarget.clientHeight;
-                                    if (bottom && hasNextPage) fetchNextPage();
+                                    if (bottom && hasNextBicyclePage) fetchNextBicyclePage();
                                 }}
                             >
                                 {bicyclesData?.pages.flatMap((page) =>
-                                    page.map((bike: Bike) => (
+                                    page.data.map((bike: Bike) => (
                                         <SelectItem key={bike.id} value={bike.id.toString()}>
-                                            {bike.brand} - {bike.model} - {bike.client.name}
+                                            {bike.brand} - {bike.model}
                                         </SelectItem>
                                     ))
                                 )}
@@ -202,7 +207,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                 }}
                             >
                                 {mechanicsData?.pages.flatMap((page) =>
-                                    page.map((mechanic: Mechanic) => (
+                                    page.data.map((mechanic: Mechanic) => (
                                         <SelectItem key={mechanic.id} value={mechanic.id.toString()}>
                                             {mechanic.name}
                                         </SelectItem>

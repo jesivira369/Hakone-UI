@@ -12,3 +12,11 @@ export interface Client {
   services: Service[];
   userId: number;
 }
+
+export interface ClientQuery {
+  data: Client[];
+  limit: number;
+  page: number;
+  totalItems: number;
+  totalPages: number;
+}

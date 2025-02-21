@@ -6,10 +6,10 @@ import { Users, Bike, Wrench, DollarSign } from "lucide-react";
 
 export default function DashboardOverview() {
     const stats = [
-        { title: "Clientes", value: 120, icon: <Users className="w-6 h-6" /> },
-        { title: "Bicicletas Registradas", value: 85, icon: <Bike className="w-6 h-6" /> },
-        { title: "Servicios Completados", value: 230, icon: <Wrench className="w-6 h-6" /> },
-        { title: "Ingresos", value: "$12,500", icon: <DollarSign className="w-6 h-6" /> },
+        { title: "Clientes", value: 120, icon: <Users size={50} />, link: "/clients" },
+        { title: "Bicicletas Registradas", value: 85, icon: <Bike size={50} />, link: "/bicycles" },
+        { title: "Servicios Completados", value: 230, icon: <Wrench size={50} />, link: "/services" },
+        { title: "Ingresos", value: "$12,500", icon: <DollarSign size={50} />, link: "/dashboard" },
     ];
 
     const chartData = [
@@ -20,8 +20,8 @@ export default function DashboardOverview() {
     ];
 
     return (
-        <div className="grid gap-6 p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid gap-8 p-6">
+            <div className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-center">
                 {stats.map((stat, index) => (
                     <StatsCard key={index} {...stat} />
                 ))}

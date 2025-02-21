@@ -5,6 +5,7 @@ import "./globals.css";
 import "./globals.css"
 import { ThemeProvider } from "../components/theme/theme-provider";
 import { AuthProvider } from "@/context/auth-provider";
+import { Toaster } from "@/components/ui/Toaster";
 
 export const metadata: Metadata = {
   title: "Hakone - Gestión de Taller de Bicicletas",
@@ -25,6 +26,7 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Providers>
               {children}
+              <Toaster />
             </Providers>
           </ThemeProvider>
         </AuthProvider>

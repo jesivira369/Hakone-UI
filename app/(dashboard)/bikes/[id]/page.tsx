@@ -8,7 +8,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Edit, Eye } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,11 +38,6 @@ export default function BikeDetailPage() {
         },
         enabled: !!bikeId
     });
-
-    useEffect(() => {
-        console.log(servicesData?.totalPages)
-    }, [servicesData?.totalPages])
-
 
     if (isLoading) {
         return (

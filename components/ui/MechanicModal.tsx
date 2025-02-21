@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Mechanic } from "@/lib/types";
+import { toast } from "react-toastify";
 
 const mechanicSchema = z.object({
     name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
@@ -57,7 +58,19 @@ export function MechanicModal({ isOpen, onClose, mechanic }: MechanicModalProps)
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["mechanics"] });
+
+            toast.success(mechanic ? "Mecanico actualizado con éxito" : "Mecanico creado con éxito", {
+                className: "bg-green-600 text-white border border-green-700",
+            });
+
             onClose();
+            setIsLoading(false);
+        },
+        onError: (error) => {
+            toast.error(error.message || "Ocurrió un error al guardar el mecanico", {
+                className: "bg-red-600 text-white border border-red-700",
+            });
+
             setIsLoading(false);
         },
     });

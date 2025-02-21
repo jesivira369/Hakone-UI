@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Mechanic } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { toast } from "react-toastify";
 
 export default function Mechanics() {
     const queryClient = useQueryClient();
@@ -36,7 +37,17 @@ export default function Mechanics() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["mechanics"] });
+
+            toast.success("Mecanico eliminado con exito", {
+                className: "bg-green-600 text-white border border-green-700",
+            });
+
             setDeleteModalOpen(false);
+        },
+        onError: (error) => {
+            toast.error(error.message || "Ocurrió un error al eliminar el mecanico", {
+                className: "bg-red-600 text-white border border-red-700",
+            });
         },
     });
 

@@ -13,6 +13,7 @@ import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/lib/utils";
 import { Bike, BikeQuery, Mechanic, MechanicQuery, Service } from "@/lib/types";
 import { Plus, Trash } from "lucide-react";
+import { toast } from "react-toastify";
 
 const serviceSchema = z.object({
     bicycleId: z.number().min(1, "Debe seleccionar una bicicleta"),
@@ -125,7 +126,19 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["services"] });
+
+            toast.success(service ? "Servicio actualizado con éxito" : "Servicio creado con éxito", {
+                className: "bg-green-600 text-white border border-green-700",
+            });
+
             onClose();
+            setIsLoading(false);
+        },
+        onError: (error) => {
+            toast.error(error.message || "Ocurrió un error al guardar el servicio", {
+                className: "bg-red-600 text-white border border-red-700",
+            });
+
             setIsLoading(false);
         },
     });

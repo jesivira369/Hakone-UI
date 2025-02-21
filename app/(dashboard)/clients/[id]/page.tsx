@@ -13,6 +13,7 @@ import { Edit, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ClientModal } from "@/components/ui/ClientModal";
 import { formatDate } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ClientDetailPage() {
     const { id: clientId } = useParams();
@@ -38,8 +39,20 @@ export default function ClientDetailPage() {
         enabled: !!clientId
     });
 
-    if (isLoading) return <p>Cargando cliente...</p>;
-    if (error || !clientData) return <p>Error al cargar el cliente.</p>;
+    if (isLoading) {
+        return (
+            <div className="p-6">
+                <h1 className="text-2xl font-bold mb-4">Detalles del Cliente</h1>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Skeleton className="h-6 w-1/2 mb-2" />
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2 mb-2" />
+                    <Skeleton className="h-4 w-1/3 mb-2" />
+                </div>
+            </div>
+        );
+    }
+    if (error || !clientData) return <p className="p-6 text-red-500">Error al cargar el cliente.</p>;
 
     const bicycleColumns: ColumnDef<Bike>[] = [
         { accessorKey: "brand", header: "Marca" },

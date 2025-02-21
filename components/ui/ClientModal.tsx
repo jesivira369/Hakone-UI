@@ -76,7 +76,6 @@ export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
                 className: "bg-green-600 text-white border border-green-700",
             });
 
-
             onClose();
             setIsLoading(false)
         },

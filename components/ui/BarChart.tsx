@@ -1,5 +1,6 @@
 import { Bar } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from "chart.js";
+import { ChartCard } from "./ChartCard";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -19,5 +20,5 @@ export function CustomBarChart({ data }: BarChartProps) {
         ],
     };
 
-    return <Bar data={chartData} />;
+    return <ChartCard title="Distribución de Valores"><div className="w-full h-64"><Bar data={chartData} /></div></ChartCard>;
 }

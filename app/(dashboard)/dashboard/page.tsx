@@ -21,23 +21,18 @@ export default function DashboardOverview() {
     ];
 
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p>Bienvenido al panel de gestión del taller de bicicletas.</p>
-            <div className="grid gap-6 p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {stats.map((stat, index) => (
-                        <StatsCard key={index} {...stat} />
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <CustomBarChart data={chartData} />
-                    <CustomLineChart data={chartData} />
-                </div>
-                <div className="flex justify-center">
-                    <CustomPieChart data={chartData} />
-                </div>
+        <div className="grid gap-6 p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {stats.map((stat, index) => (
+                    <StatsCard key={index} {...stat} />
+                ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <CustomBarChart data={chartData} />
+                <CustomLineChart data={chartData} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <CustomPieChart data={chartData} />
             </div>
         </div>
     );

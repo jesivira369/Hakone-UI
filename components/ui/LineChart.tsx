@@ -1,15 +1,21 @@
-import { LineChartProps } from "@/lib/types";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Line } from "react-chartjs-2";
+import { Chart as ChartJS, PointElement, LineElement, CategoryScale, Legend, LinearScale, Tooltip } from "chart.js";
+import { BarChartProps } from "@/lib/types";
 
-export function CustomLineChart({ data }: LineChartProps) {
-    return (
-        <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#82ca9d" />
-            </LineChart>
-        </ResponsiveContainer>
-    );
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
+
+export function CustomLineChart({ data }: BarChartProps) {
+    const chartData = {
+        labels: data.map(d => d.name),
+        datasets: [
+            {
+                label: "Valor",
+                data: data.map(d => d.value),
+                borderColor: "#82ca9d",
+                fill: false,
+            },
+        ],
+    };
+
+    return <Line data={chartData} />;
 }

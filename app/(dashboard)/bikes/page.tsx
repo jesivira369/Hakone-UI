@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/utils";
+import { toast } from "react-toastify";
 
 export default function Bikes() {
     const queryClient = useQueryClient();
@@ -38,7 +39,17 @@ export default function Bikes() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["bicycles"] });
+
+            toast.success("Bicicleta eliminado con exito", {
+                className: "bg-green-600 text-white border border-green-700",
+            });
+
             setDeleteModalOpen(false);
+        },
+        onError: (error) => {
+            toast.error(error.message || "Ocurrió un error al eliminar la bicicleta", {
+                className: "bg-red-600 text-white border border-red-700",
+            });
         },
     });
 

@@ -6,13 +6,13 @@ import api from "@/lib/axiosInstance";
 import { Service } from "@/lib/types";
 import { ServiceStatus } from "@/lib/enums";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
 import { useState } from "react";
 import { ServiceModal } from "@/components/ui/ServiceModal";
 import { ServiceStatusUpdater } from "@/components/ui/ServiceStatusUpdater";
+import { DetailsSkeleton } from "@/components/ui/Skeleton/DetailsSkeleton";
 
 export default function ServiceDetails() {
     const { id: serviceId } = useParams();
@@ -28,17 +28,7 @@ export default function ServiceDetails() {
     });
 
     if (isLoading) {
-        return (
-            <div className="p-6">
-                <h1 className="text-2xl font-bold mb-4">Detalles del Servicio</h1>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Skeleton className="h-6 w-1/2 mb-2" />
-                    <Skeleton className="h-4 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-1/2 mb-2" />
-                    <Skeleton className="h-4 w-1/3 mb-2" />
-                </div>
-            </div>
-        );
+        return <DetailsSkeleton />;
     }
 
     if (error || !service) return <p className="p-6 text-red-500">Error al cargar el servicio.</p>;

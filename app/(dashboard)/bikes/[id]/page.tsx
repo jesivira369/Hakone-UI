@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Edit, Eye } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
 import { BicycleModal } from "@/components/ui/BikeModal";
+import { DetailsSkeleton } from "@/components/ui/Skeleton/DetailsSkeleton";
 
 export default function BikeDetailPage() {
     const { id: bikeId } = useParams();
@@ -40,17 +40,7 @@ export default function BikeDetailPage() {
     });
 
     if (isLoading) {
-        return (
-            <div className="p-6">
-                <h1 className="text-2xl font-bold mb-4">Detalles de la Bicicleta</h1>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Skeleton className="h-6 w-1/2 mb-2" />
-                    <Skeleton className="h-4 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-1/2 mb-2" />
-                    <Skeleton className="h-4 w-1/3 mb-2" />
-                </div>
-            </div>
-        );
+        return <DetailsSkeleton />;
     }
 
     if (error || !bikeData) return <p className="p-6 text-red-500">Error al cargar la bicicleta.</p>;

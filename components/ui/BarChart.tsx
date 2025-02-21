@@ -1,15 +1,23 @@
-import { BarChartProps } from "@/lib/types";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Bar } from "react-chartjs-2";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from "chart.js";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+interface BarChartProps {
+    data: { name: string; value: number }[];
+}
 
 export function CustomBarChart({ data }: BarChartProps) {
-    return (
-        <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#0088FE" />
-            </BarChart>
-        </ResponsiveContainer>
-    );
+    const chartData = {
+        labels: data.map(d => d.name),
+        datasets: [
+            {
+                label: "Valor",
+                data: data.map(d => d.value),
+                backgroundColor: "#0088FE",
+            },
+        ],
+    };
+
+    return <Bar data={chartData} />;
 }

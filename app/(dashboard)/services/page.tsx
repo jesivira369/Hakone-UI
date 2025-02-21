@@ -15,6 +15,7 @@ import { DeleteModal } from "@/components/ui/DeleteModal";
 import { ServiceStatus, ServiceStatusLabels } from "@/lib/enums";
 import { formatDate } from "@/lib/utils";
 import { toast } from "react-toastify";
+import { TableSkeleton } from "@/components/ui/Skeleton/TableSkeleton";
 
 export default function ServicesPage() {
     const queryClient = useQueryClient();
@@ -118,7 +119,7 @@ export default function ServicesPage() {
         },
     ];
 
-    if (isLoading) return <p>Cargando servicios...</p>;
+    if (isLoading) return <TableSkeleton />;
     if (error) return <p>Error al cargar los servicios.</p>;
 
     return (

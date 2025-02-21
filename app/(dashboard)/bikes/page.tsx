@@ -14,6 +14,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/utils";
 import { toast } from "react-toastify";
+import { TableSkeleton } from "@/components/ui/Skeleton/TableSkeleton";
 
 export default function Bikes() {
     const queryClient = useQueryClient();
@@ -90,7 +91,7 @@ export default function Bikes() {
     ];
 
 
-    if (isLoading) return <p>Cargando bicicletas...</p>;
+    if (isLoading) return <TableSkeleton />;
     if (error) return <p>Error al cargar las bicicletas.</p>;
 
     return (

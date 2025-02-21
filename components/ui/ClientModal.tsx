@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Client } from "@/lib/types";
 import { formatPhoneNumber } from "@/lib/utils"
+import { toast } from "react-toastify";
 
 const clientSchema = z.object({
     name: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
@@ -70,8 +71,21 @@ export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["clients"] });
+
+            toast.success(client ? "Cliente actualizado con éxito" : "Cliente creado con éxito", {
+                className: "bg-green-600 text-white border border-green-700",
+            });
+
+
             onClose();
             setIsLoading(false)
+        },
+        onError: (error) => {
+            toast.error(error.message || "Ocurrió un error al guardar el cliente", {
+                className: "bg-red-600 text-white border border-red-700",
+            });
+
+            setIsLoading(false);
         },
     });
 

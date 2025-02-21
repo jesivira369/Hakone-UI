@@ -3,8 +3,16 @@ import { StatsCard } from "@/components/ui/StatsCards";
 import { CustomBarChart } from "@/components/ui/BarChart";
 import { CustomLineChart } from "@/components/ui/LineChart";
 import { Users, Bike, Wrench, DollarSign } from "lucide-react";
+import { DashboardSkeleton } from "@/components/ui/Skeleton/DashboardSkeleton";
+import { useState, useEffect } from "react";
 
 export default function DashboardOverview() {
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setTimeout(() => setLoading(false), 2000);
+    }, []);
+
     const stats = [
         { title: "Clientes", value: 120, icon: <Users size={50} />, link: "/clients" },
         { title: "Bicicletas Registradas", value: 85, icon: <Bike size={50} />, link: "/bicycles" },
@@ -18,6 +26,8 @@ export default function DashboardOverview() {
         { name: "Marzo", value: 80 },
         { name: "Abril", value: 40 },
     ];
+
+    if (loading) return <DashboardSkeleton />;
 
     return (
         <div className="grid gap-8 p-6">

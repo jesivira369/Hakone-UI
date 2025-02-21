@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Mechanic } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { toast } from "react-toastify";
+import { TableSkeleton } from "@/components/ui/Skeleton/TableSkeleton";
 
 export default function Mechanics() {
     const queryClient = useQueryClient();
@@ -73,7 +74,7 @@ export default function Mechanics() {
         },
     ];
 
-    if (isLoading) return <p>Cargando mecánicos...</p>;
+    if (isLoading) return <TableSkeleton />;
     if (error) return <p>Error al cargar los mecánicos.</p>;
 
     return (

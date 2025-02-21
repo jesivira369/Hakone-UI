@@ -14,6 +14,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
 import { formatDate } from "@/lib/utils";
 import { toast } from "react-toastify";
+import { TableSkeleton } from "@/components/ui/Skeleton/TableSkeleton";
 
 export default function ClientsPage() {
     const queryClient = useQueryClient();
@@ -77,7 +78,7 @@ export default function ClientsPage() {
         },
     ];
 
-    if (isLoading) return <p>Cargando clientes...</p>;
+    if (isLoading) return <TableSkeleton />;
     if (error) return <p>Error al cargar los clientes.</p>;
 
     return (

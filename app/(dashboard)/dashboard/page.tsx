@@ -1,8 +1,8 @@
 "use client"
 import { StatsCard } from "@/components/ui/StatsCards";
 import { CustomBarChart } from "@/components/ui/BarChart";
-// import { CustomLineChart } from "@/components/ui/LineChart";
-// import { CustomPieChart } from "@/components/ui/PieChart";
+import { CustomLineChart } from "@/components/ui/LineChart";
+import { CustomPieChart } from "@/components/ui/PieChart";
 import { Users, Bike, Wrench, DollarSign } from "lucide-react";
 
 export default function DashboardOverview() {
@@ -30,14 +30,14 @@ export default function DashboardOverview() {
                         <StatsCard key={index} {...stat} />
                     ))}
                 </div>
-                <CustomBarChart data={chartData} />
-                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <CustomBarChart data={chartData} />
                     <CustomLineChart data={chartData} />
                 </div>
                 <div className="flex justify-center">
                     <CustomPieChart data={chartData} />
-                </div> */}
+                </div>
             </div>
         </div>
     );

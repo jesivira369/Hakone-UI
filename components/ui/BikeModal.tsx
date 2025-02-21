@@ -11,6 +11,7 @@ import { useMutation, useInfiniteQuery, useQueryClient } from "@tanstack/react-q
 import api from "@/lib/axiosInstance";
 import { Client, Bike, ClientQuery } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "react-toastify";
 
 const bicycleSchema = z.object({
     brand: z.string().min(3, "La marca debe tener al menos 3 caracteres"),
@@ -91,7 +92,19 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["bicycles"] });
+
+            toast.success(bicycle ? "Bicicleta actualizada con éxito" : "Bicicleta creada con éxito", {
+                className: "bg-green-600 text-white border border-green-700",
+            });
+
             onClose();
+            setIsLoading(false);
+        },
+        onError: (error) => {
+            toast.error(error.message || "Ocurrió un error al guardar la bicicleta", {
+                className: "bg-red-600 text-white border border-red-700",
+            });
+
             setIsLoading(false);
         },
     });

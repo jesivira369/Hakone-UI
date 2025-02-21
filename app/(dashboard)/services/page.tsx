@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { DeleteModal } from "@/components/ui/DeleteModal";
 import { ServiceStatus, ServiceStatusLabels } from "@/lib/enums";
 import { formatDate } from "@/lib/utils";
+import { toast } from "react-toastify";
 
 export default function ServicesPage() {
     const queryClient = useQueryClient();
@@ -39,7 +40,17 @@ export default function ServicesPage() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["bicycles"] });
+
+            toast.success("Servicio eliminado con exito", {
+                className: "bg-green-600 text-white border border-green-700",
+            });
+
             setDeleteModalOpen(false);
+        },
+        onError: (error) => {
+            toast.error(error.message || "Ocurrió un error al eliminar el servicio", {
+                className: "bg-red-600 text-white border border-red-700",
+            });
         },
     });
 

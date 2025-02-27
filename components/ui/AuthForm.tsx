@@ -37,11 +37,17 @@ export function AuthForm({ type }: AuthFormProps) {
 
         try {
             if (type === "login") {
-                await login(data.email, data.password);
-                router.push('/dashboard');
+                const response = await login(data.email, data.password);
+                if (!response || !response.accessToken) {
+                    throw new Error("No se recibió un token válido.");
+                }
+                router.replace("/dashboard");
             } else {
-                await register(data.email, data.password, data.shopName);
-                router.push("/register/success");
+                const response = await register(data.email, data.password, data.shopName);
+                if (!response) {
+                    throw new Error("Registro fallido.");
+                }
+                router.replace("/register/success");
             }
         } catch (error) {
             const err = error as AuthError;
@@ -50,6 +56,7 @@ export function AuthForm({ type }: AuthFormProps) {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">

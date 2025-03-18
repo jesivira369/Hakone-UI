@@ -140,7 +140,7 @@ export default function ServicesPage() {
                 setPage={setPage}
                 limit={limit}
                 setLimit={setLimit}
-                total={servicesData?.total}
+                total={servicesData?.totalItems}
                 totalPage={servicesData?.totalPages}
             />
             {modalOpen && (

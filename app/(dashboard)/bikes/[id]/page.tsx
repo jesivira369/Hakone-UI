@@ -131,7 +131,7 @@ export default function BikeDetailPage() {
                         data={servicesData.data ?? []}
                         page={page}
                         limit={limit}
-                        total={servicesData?.total}
+                        total={servicesData?.totalItems}
                         setPage={setPage}
                         setLimit={setLimit}
                         totalPage={servicesData?.totalPages}

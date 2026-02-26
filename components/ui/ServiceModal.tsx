@@ -15,12 +15,26 @@ import { Bike, BikeQuery, Mechanic, MechanicQuery, Service } from "@/lib/types";
 import { Plus, Trash } from "lucide-react";
 import { toast } from "react-toastify";
 
+function toDateTimeLocal(iso: string | null | undefined): string {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toISOString(localDateTime: string): string {
+    if (!localDateTime) return "";
+    return new Date(localDateTime).toISOString();
+}
+
 const serviceSchema = z.object({
     bicycleId: z.number().min(1, "Debe seleccionar una bicicleta"),
     clientId: z.number().min(1, "Debe seleccionar un cliente"),
     mechanicId: z.number().min(1, "Debe seleccionar un mecanico"),
     description: z.string().min(5, "La descripción debe tener al menos 5 caracteres"),
     price: z.number().min(1, "El precio debe ser un número válido"),
+    scheduledAt: z.string().min(1, "La fecha de programación es requerida"),
+    deliveryAt: z.string().min(1, "La fecha de entrega es requerida"),
     partsUsed: z.record(z.string(), z.number()).optional(),
 });
 
@@ -55,6 +69,8 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             mechanicId: 0,
             description: "",
             price: 0,
+            scheduledAt: "",
+            deliveryAt: "",
             partsUsed: {},
         },
     });
@@ -97,21 +113,47 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             setValue("bicycleId", service.bicycleId);
             setValue("clientId", service.clientId);
             setValue("mechanicId", service.mechanicId);
+            setValue(
+                "scheduledAt",
+                toDateTimeLocal(service.scheduledAt ?? null) || toDateTimeLocal(new Date().toISOString())
+            );
+            setValue(
+                "deliveryAt",
+                toDateTimeLocal(service.deliveryAt ?? null) ||
+                    toDateTimeLocal(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString())
+            );
             setHasParts(!!service.partsUsed);
             if (service.partsUsed) {
-                setPartsUsed(Object.entries(service.partsUsed).map(([name, quantity]) => ({ name, quantity })));
+                setPartsUsed(
+                    Object.entries(service.partsUsed).map(([name, quantity]) => ({
+                        name,
+                        quantity: typeof quantity === "number" ? quantity : Number(quantity) || 0,
+                    }))
+                );
             }
         } else {
+            const now = new Date();
+            const in2Days = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
             reset();
+            setValue("scheduledAt", toDateTimeLocal(now.toISOString()));
+            setValue("deliveryAt", toDateTimeLocal(in2Days.toISOString()));
         }
     }, [service, setValue, reset]);
 
     const mutation = useMutation({
         mutationFn: async (data: z.infer<typeof serviceSchema>) => {
+            const scheduledAt = data.scheduledAt
+                ? toISOString(data.scheduledAt)
+                : new Date().toISOString();
+            const deliveryAt = data.deliveryAt
+                ? toISOString(data.deliveryAt)
+                : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
 
             const requestData = {
                 ...data,
                 price: parseFloat(data.price.toString()),
+                scheduledAt,
+                deliveryAt,
                 partsUsed: hasParts && partsUsed.length > 0
                     ? Object.fromEntries(partsUsed.map((part) => [part.name, part.quantity]))
                     : {},
@@ -229,6 +271,27 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                             </SelectContent>
                         </Select>
                         {errors.mechanicId && <p className="text-red-500 text-sm">{errors.mechanicId.message}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium">Fecha programada</label>
+                            <Input
+                                type="datetime-local"
+                                {...register("scheduledAt")}
+                                className="w-full"
+                            />
+                            {errors.scheduledAt && <p className="text-red-500 text-sm">{errors.scheduledAt.message}</p>}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Fecha de entrega</label>
+                            <Input
+                                type="datetime-local"
+                                {...register("deliveryAt")}
+                                className="w-full"
+                            />
+                            {errors.deliveryAt && <p className="text-red-500 text-sm">{errors.deliveryAt.message}</p>}
+                        </div>
                     </div>
 
                     <div>

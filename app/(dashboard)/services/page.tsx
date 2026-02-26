@@ -28,19 +28,21 @@ export default function ServicesPage() {
     const [limit, setLimit] = useState(10);
 
     const { data: servicesData, isLoading, error } = useQuery({
-        queryKey: ["services", page, limit],
+        queryKey: ["services", page, limit, search],
         queryFn: async () => {
-            const { data } = await api.get(`/services?page=${page}&limit=${limit}`);
+            const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+            if (search) params.set("search", search);
+            const { data } = await api.get(`/services?${params.toString()}`);
             return data;
         },
     });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: number) => {
-            await api.delete(`/bicycles/${id}`);
+            await api.delete(`/services/${id}`);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["bicycles"] });
+            queryClient.invalidateQueries({ queryKey: ["services"] });
 
             toast.success("Servicio eliminado con exito", {
                 className: "bg-green-600 text-white border border-green-700",

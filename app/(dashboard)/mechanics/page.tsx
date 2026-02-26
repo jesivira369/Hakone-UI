@@ -25,9 +25,11 @@ export default function Mechanics() {
     const [limit, setLimit] = useState(10);
 
     const { data: mechanicsData, isLoading, error } = useQuery({
-        queryKey: ["mechanics", page, limit],
+        queryKey: ["mechanics", page, limit, search],
         queryFn: async () => {
-            const { data } = await api.get(`/mechanics?page=${page}&limit=${limit}`);
+            const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+            if (search) params.set("search", search);
+            const { data } = await api.get(`/mechanics?${params.toString()}`);
             return data;
         },
     });

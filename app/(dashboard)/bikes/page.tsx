@@ -27,9 +27,11 @@ export default function Bikes() {
     const [limit, setLimit] = useState(10);
 
     const { data: bikesData, isLoading, error } = useQuery({
-        queryKey: ["bicycles", page, limit],
+        queryKey: ["bicycles", page, limit, search],
         queryFn: async () => {
-            const { data } = await api.get(`/bicycles?page=${page}&limit=${limit}`);
+            const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+            if (search) params.set("search", search);
+            const { data } = await api.get(`/bicycles?${params.toString()}`);
             return data;
         },
     });

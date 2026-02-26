@@ -15,8 +15,10 @@ export interface Service {
   mechanicId: number;
   createdAt: string;
   updatedAt: string;
-  completedAt: string;
-  partsUsed?: Record<string, number> | null;
+  completedAt?: string | null;
+  scheduledAt?: string | null;
+  deliveryAt?: string | null;
+  partsUsed?: Record<string, string | number> | null;
 }
 
 export interface ServiceQuery {

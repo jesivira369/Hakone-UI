@@ -27,9 +27,11 @@ export default function ClientsPage() {
     const [limit, setLimit] = useState(10);
 
     const { data: clientsData, isLoading, error } = useQuery({
-        queryKey: ["clients", page, limit],
+        queryKey: ["clients", page, limit, search],
         queryFn: async () => {
-            const { data } = await api.get(`/clients?page=${page}&limit=${limit}`);
+            const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+            if (search) params.set("search", search);
+            const { data } = await api.get(`/clients?${params.toString()}`);
             return data;
         },
     });

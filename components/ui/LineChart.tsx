@@ -7,7 +7,7 @@ import { LineChartProps } from "@/lib/types";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
-export function CustomLineChart({ data }: LineChartProps) {
+export function CustomLineChart({ data, title = "Servicios Anuales", label = "Servicios" }: LineChartProps) {
     const { theme } = useTheme();
     const textColor = theme === "dark" ? "#FFFFFF" : "#000000";
 
@@ -15,7 +15,7 @@ export function CustomLineChart({ data }: LineChartProps) {
         labels: data.map((d) => d.name),
         datasets: [
             {
-                label: "Servicios",
+                label,
                 data: data.map((d) => d.value),
                 borderColor: "#82ca9d",
                 backgroundColor: "rgba(130, 202, 157, 0.2)",
@@ -49,7 +49,7 @@ export function CustomLineChart({ data }: LineChartProps) {
     };
 
     return (
-        <ChartCard title="Servicios Anuales">
+        <ChartCard title={title}>
             <div className="w-full h-64">
                 <Line data={chartData} options={options} />
             </div>

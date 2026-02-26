@@ -70,18 +70,44 @@ export default function ServiceDetails() {
                 </CardContent>
             </Card>
 
-            {service.partsUsed && Object.keys(service.partsUsed).length > 0 && (
+            {service.parts && service.parts.length > 0 && (
                 <Card className="mb-6">
                     <CardHeader>
-                        <CardTitle>Repuestos Usados</CardTitle>
+                        <CardTitle>Repuestos</CardTitle>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {Object.entries(service.partsUsed).map(([part, quantity]) => (
-                            <div key={part} className="p-3 border rounded-lg shadow-sm flex justify-between items-center">
-                                <p className="font-medium">{part}</p>
-                                <span className="text-gray-700 font-semibold">{quantity}x</span>
-                            </div>
-                        ))}
+                    <CardContent>
+                        <div className="rounded-lg border overflow-hidden">
+                            <table className="w-full text-sm">
+                                <thead className="bg-muted">
+                                    <tr>
+                                        <th className="px-3 py-2 text-left font-medium">Repuesto</th>
+                                        <th className="px-3 py-2 text-right font-medium">Cant.</th>
+                                        <th className="px-3 py-2 text-right font-medium">P. unitario</th>
+                                        <th className="px-3 py-2 text-right font-medium">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {service.parts.map((part, i) => (
+                                        <tr key={part.id} className={i % 2 === 0 ? "bg-background" : "bg-muted/30"}>
+                                            <td className="px-3 py-2">{part.name}</td>
+                                            <td className="px-3 py-2 text-right">{part.quantity}</td>
+                                            <td className="px-3 py-2 text-right">{formatCurrency(part.unitPrice)}</td>
+                                            <td className="px-3 py-2 text-right font-medium">
+                                                {formatCurrency(part.quantity * part.unitPrice)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot className="border-t">
+                                    <tr>
+                                        <td colSpan={3} className="px-3 py-2 text-right font-semibold">Total repuestos</td>
+                                        <td className="px-3 py-2 text-right font-bold">
+                                            {formatCurrency(service.parts.reduce((s, p) => s + p.quantity * p.unitPrice, 0))}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </CardContent>
                 </Card>
             )}

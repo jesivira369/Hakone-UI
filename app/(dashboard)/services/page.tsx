@@ -83,11 +83,9 @@ export default function ServicesPage() {
             },
         },
         {
-            header: "Repuestos Usados",
+            header: "Repuestos",
             cell: ({ row }) => (
-                <div>
-                    {row.original.partsUsed ? Object.keys(row.original.partsUsed).length : 0}
-                </div>
+                <div>{row.original.parts?.length ?? 0}</div>
             ),
         },
         { accessorKey: "price", header: "Precio" },

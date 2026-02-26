@@ -99,8 +99,8 @@ export default function ServicesPage() {
             ),
         },
         { accessorKey: "mechanic.name", header: "Mecánico" },
-        { accessorKey: "createdAt", header: "Fecha de creación", cell: ({ row }) => formatDate(row.original.createdAt), },
-        { accessorKey: "completedAt", header: "Fecha de finalizacion", cell: ({ row }) => formatDate(row.original.completedAt), },
+        { accessorKey: "createdAt", header: "Fecha de creación", cell: ({ row }) => formatDate(row.original.createdAt ?? ""), },
+        { accessorKey: "completedAt", header: "Fecha de finalizacion", cell: ({ row }) => row.original.completedAt ? formatDate(row.original.completedAt) : "—", },
         {
             header: "Acciones",
             cell: ({ row }) => (

@@ -10,14 +10,14 @@ import { Input } from "@/components/ui/input";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Client } from "@/lib/types";
-import { formatPhoneNumber } from "@/lib/utils"
 import { toast } from "react-toastify";
 
 const clientSchema = z.object({
     name: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
     phone: z
         .string()
-        .regex(/^\d{2}-\d{4}-\d{4}$/, "El teléfono debe tener el formato xx-xxxx-xxxx"),
+        .min(6, "El teléfono debe tener al menos 6 caracteres")
+        .regex(/^[+\d][\d\s\-().+]*$/, "Solo se permiten números"),
     email: z.string().email("Debe ser un email válido"),
 });
 
@@ -34,7 +34,7 @@ interface ClientModalProps {
 
 export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
     const queryClient = useQueryClient();
-    const [isLoading, setIsLoading] = useState(false)
+    const [isLoading, setIsLoading] = useState(false);
     const {
         register,
         handleSubmit,
@@ -62,7 +62,7 @@ export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
 
     const mutation = useMutation({
         mutationFn: async (data: Partial<Client>) => {
-            setIsLoading(true)
+            setIsLoading(true);
             if (client) {
                 await api.patch(`/clients/${client.id}`, data);
             } else {
@@ -77,7 +77,7 @@ export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
             });
 
             onClose();
-            setIsLoading(false)
+            setIsLoading(false);
         },
         onError: (error) => {
             toast.error(error.message || "Ocurrió un error al guardar el cliente", {
@@ -97,21 +97,24 @@ export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
                 <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium">Nombre</label>
-                        <Input {...register("name")} />
+                        <Input {...register("name")} placeholder="Juan Pérez" />
                         {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
                     </div>
                     <div>
                         <label className="block text-sm font-medium">Teléfono</label>
-                        <Input {...register("phone", {
-                            onChange: (e) => setValue("phone", formatPhoneNumber(e.target.value)),
-                        })}
-                            placeholder="xx-xxxx-xxxx"
+                        <Input
+                            {...register("phone")}
+                            placeholder="1234567890"
+                            onChange={(e) => {
+                                const value = e.target.value.replace(/[^\d\s+\-().]/g, "");
+                                setValue("phone", value);
+                            }}
                         />
                         {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
                     </div>
                     <div>
                         <label className="block text-sm font-medium">Email</label>
-                        <Input type="email" {...register("email")} />
+                        <Input type="email" {...register("email")} placeholder="juan@email.com" />
                         {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
                     </div>
                     <DialogFooter>

@@ -2,6 +2,20 @@ import { Bike } from "./bikes";
 import { Client } from "./client";
 import { Mechanic } from "./mechanic";
 
+export interface ServicePart {
+  id: number;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  serviceId: number;
+}
+
+export interface ServicePartInput {
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
 export interface Service {
   id: number;
   description: string;
@@ -18,7 +32,7 @@ export interface Service {
   completedAt?: string | null;
   scheduledAt?: string | null;
   deliveryAt?: string | null;
-  partsUsed?: Record<string, string | number> | null;
+  parts: ServicePart[];
 }
 
 export interface ServiceQuery {

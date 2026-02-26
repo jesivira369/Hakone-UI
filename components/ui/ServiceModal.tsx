@@ -24,7 +24,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { formatCurrency } from "@/lib/utils";
 import { Bike, BikeQuery, Client, ClientQuery, Mechanic, MechanicQuery, Service, ServicePartInput } from "@/lib/types";
-import { Plus, Trash, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import { toast } from "react-toastify";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

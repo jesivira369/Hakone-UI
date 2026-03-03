@@ -18,6 +18,7 @@ export function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
   const isProtectedRoute =
     req.nextUrl.pathname.startsWith("/dashboard") ||
+    req.nextUrl.pathname.startsWith("/calendar") ||
     req.nextUrl.pathname.startsWith("/clients") ||
     req.nextUrl.pathname.startsWith("/bikes") ||
     req.nextUrl.pathname.startsWith("/services") ||
@@ -44,6 +45,7 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/calendar/:path*",
     "/clients/:path*",
     "/bikes/:path*",
     "/services/:path*",

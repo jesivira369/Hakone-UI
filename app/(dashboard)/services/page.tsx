@@ -28,19 +28,21 @@ export default function ServicesPage() {
     const [limit, setLimit] = useState(10);
 
     const { data: servicesData, isLoading, error } = useQuery({
-        queryKey: ["services", page, limit],
+        queryKey: ["services", page, limit, search],
         queryFn: async () => {
-            const { data } = await api.get(`/services?page=${page}&limit=${limit}`);
+            const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+            if (search) params.set("search", search);
+            const { data } = await api.get(`/services?${params.toString()}`);
             return data;
         },
     });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: number) => {
-            await api.delete(`/bicycles/${id}`);
+            await api.delete(`/services/${id}`);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["bicycles"] });
+            queryClient.invalidateQueries({ queryKey: ["services"] });
 
             toast.success("Servicio eliminado con exito", {
                 className: "bg-green-600 text-white border border-green-700",
@@ -81,11 +83,9 @@ export default function ServicesPage() {
             },
         },
         {
-            header: "Repuestos Usados",
+            header: "Repuestos",
             cell: ({ row }) => (
-                <div>
-                    {row.original.partsUsed ? Object.keys(row.original.partsUsed).length : 0}
-                </div>
+                <div>{row.original.parts?.length ?? 0}</div>
             ),
         },
         { accessorKey: "price", header: "Precio" },
@@ -99,8 +99,8 @@ export default function ServicesPage() {
             ),
         },
         { accessorKey: "mechanic.name", header: "Mecánico" },
-        { accessorKey: "createdAt", header: "Fecha de creación", cell: ({ row }) => formatDate(row.original.createdAt), },
-        { accessorKey: "completedAt", header: "Fecha de finalizacion", cell: ({ row }) => formatDate(row.original.completedAt), },
+        { accessorKey: "createdAt", header: "Fecha de creación", cell: ({ row }) => formatDate(row.original.createdAt ?? ""), },
+        { accessorKey: "completedAt", header: "Fecha de finalizacion", cell: ({ row }) => row.original.completedAt ? formatDate(row.original.completedAt) : "—", },
         {
             header: "Acciones",
             cell: ({ row }) => (

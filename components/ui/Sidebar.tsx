@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bike, ClipboardList, Home, Users, ChevronLeft, ChevronRight, Wrench } from "lucide-react";
+import { Bike, Calendar, ClipboardList, Home, Users, ChevronLeft, ChevronRight, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
 
 const menuItems = [
     { icon: Home, label: "Dashboard", href: "/dashboard" },
+    { icon: Calendar, label: "Calendario", href: "/calendar" },
     { icon: ClipboardList, label: "Servicios", href: "/services" },
     { icon: Users, label: "Clientes", href: "/clients" },
     { icon: Bike, label: "Bicicletas", href: "/bikes" },

@@ -7,7 +7,7 @@ import { BarChartProps } from "@/lib/types";
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 
-export function CustomBarChart({ data }: BarChartProps) {
+export function CustomBarChart({ data, title = "Distribución de Valores", label = "Valor" }: BarChartProps) {
     const { theme } = useTheme();
     const textColor = theme === "dark" ? "#FFFFFF" : "#000000";
 
@@ -15,7 +15,7 @@ export function CustomBarChart({ data }: BarChartProps) {
         labels: data.map(d => d.name),
         datasets: [
             {
-                label: "Valor",
+                label,
                 data: data.map(d => d.value),
                 backgroundColor: "#0088FE",
             },
@@ -23,6 +23,8 @@ export function CustomBarChart({ data }: BarChartProps) {
     };
 
     const options = {
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: {
                 labels: { color: textColor },
@@ -35,7 +37,7 @@ export function CustomBarChart({ data }: BarChartProps) {
     };
 
     return (
-        <ChartCard title="Distribución de Valores">
+        <ChartCard title={title}>
             <div className="w-full h-64">
                 <Bar data={chartData} options={options} />
             </div>

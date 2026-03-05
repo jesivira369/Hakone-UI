@@ -90,15 +90,15 @@ export default function BikeDetailPage() {
     ];
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">Bicicleta: {bikeData.brand} {bikeData.model}</h1>
-                <Button variant="outline" onClick={() => setEditModalOpen(true)}>
+        <div className="min-w-0 space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h1 className="truncate text-xl font-bold sm:text-2xl">Bicicleta: {bikeData.brand} {bikeData.model}</h1>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={() => setEditModalOpen(true)}>
                     <Edit size={16} className="mr-2" /> Editar Bicicleta
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <Card>
                     <CardHeader>
                         <CardTitle>Información de la Bicicleta</CardTitle>
@@ -123,9 +123,9 @@ export default function BikeDetailPage() {
                 </Card>
             </div>
 
-            <div>
-                <h2 className="text-xl font-semibold mb-4">Servicios de la Bicicleta</h2>
-                {isServiceLoading ? <p>Cargando servicios...</p> : isServiceError ? <p>Error al cargar los servicios.</p> : (
+            <div className="min-w-0">
+                <h2 className="mb-4 text-xl font-semibold">Servicios de la Bicicleta</h2>
+                {isServiceLoading ? <p className="text-sm text-muted-foreground">Cargando servicios...</p> : isServiceError ? <p className="text-sm text-destructive">Error al cargar los servicios.</p> : (
                     <DataTable
                         columns={serviceColumns}
                         data={servicesData.data ?? []}

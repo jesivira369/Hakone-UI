@@ -60,64 +60,64 @@ export function AuthForm({ type }: AuthFormProps) {
 
 
     return (
-        <ThemeProvider forcedTheme="light"> {/* 🔹 Forzar tema claro */}
-            <div className="flex items-center justify-center min-h-screen bg-gray-100">
-                <Card className="w-full max-w-lg p-8 shadow-lg relative bg-white text-black">
-                    <div className="absolute left-1/2 transform -translate-x-1/2 -top-20">
+        <ThemeProvider forcedTheme="light">
+            <div className="flex min-h-dvh items-center justify-center bg-muted/30 p-4 sm:p-6">
+                <Card className="relative w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-md sm:max-w-lg sm:p-8">
+                    <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
                         <Image
                             src="/HakoneFondoTransparente.png"
                             alt="Hakone Services Logo"
-                            width={250}
-                            height={250}
-                            className="mx-auto"
+                            width={200}
+                            height={200}
+                            className="h-auto w-[180px] max-w-[90vw] sm:w-[220px]"
                         />
                     </div>
 
-                    <CardHeader className="pt-20 text-center mt-6">
+                    <CardHeader className="pt-16 text-center sm:pt-20">
                         <CardTitle className="text-xl">{type === "login" ? "Iniciar Sesión" : "Registrarse"}</CardTitle>
                     </CardHeader>
 
                     <CardContent>
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 sm:space-y-6">
                             <div>
                                 <label className="block text-sm font-medium">Correo Electrónico</label>
-                                <Input type="email" {...formRegister("email")} className="mt-1 text-lg p-3" />
-                                {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
+                                <Input type="email" {...formRegister("email")} className="mt-1 p-3 text-base sm:text-lg" />
+                                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium">Contraseña</label>
-                                <Input type="password" {...formRegister("password")} className="mt-1 text-lg p-3" />
-                                {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
+                                <Input type="password" {...formRegister("password")} className="mt-1 p-3 text-base sm:text-lg" />
+                                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
                             </div>
 
                             {type === "register" && (
                                 <div>
                                     <label className="block text-sm font-medium">Nombre de la Tienda</label>
-                                    <Input type="text" {...formRegister("shopName")} className="mt-1 text-lg p-3" />
-                                    {errors.shopName && <p className="text-red-500 text-sm">{errors.shopName.message}</p>}
+                                    <Input type="text" {...formRegister("shopName")} className="mt-1 p-3 text-base sm:text-lg" />
+                                    {errors.shopName && <p className="text-sm text-destructive">{errors.shopName.message}</p>}
                                 </div>
                             )}
 
-                            <Button type="submit" className="w-full text-lg py-3" disabled={loading}>
+                            <Button type="submit" className="w-full py-3 text-base sm:text-lg" disabled={loading}>
                                 {loading ? "Procesando..." : type === "login" ? "Iniciar Sesión" : "Registrarse"}
                             </Button>
                         </form>
 
-                        {errorMessage && <p className="text-red-500 mt-2 text-center">{errorMessage}</p>}
+                        {errorMessage && <p className="mt-2 text-center text-sm text-destructive">{errorMessage}</p>}
 
-                        <div className="mt-6 text-center">
+                        <div className="mt-6 text-center text-sm">
                             {type === "login" ? (
                                 <p>
                                     ¿No tienes una cuenta?{" "}
-                                    <Link href="/register" className="text-blue-500 hover:underline">
+                                    <Link href="/register" className="text-primary underline-offset-4 hover:underline">
                                         Regístrate aquí
                                     </Link>
                                 </p>
                             ) : (
                                 <p>
                                     ¿Ya tienes una cuenta?{" "}
-                                    <Link href="/login" className="text-blue-500 hover:underline">
+                                    <Link href="/login" className="text-primary underline-offset-4 hover:underline">
                                         Inicia sesión
                                     </Link>
                                 </p>

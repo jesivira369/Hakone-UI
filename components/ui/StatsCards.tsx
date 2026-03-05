@@ -2,18 +2,23 @@ import { Card } from "@/components/ui/card";
 import { StatsCardProps } from "@/lib/types";
 import Link from "next/link";
 
-
 export function StatsCard({ title, value, icon, link }: StatsCardProps) {
     return (
-        <Card className="w-full p-2 md:p-4 shadow-lg rounded-xl bg-white dark:bg-gray-800 flex flex-col items-center justify-center hover:shadow-xl transition-shadow">
-            <Link href={link} className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 hover:underline text-center">
+        <Card className="flex w-full flex-col rounded-xl border border-border bg-card p-4 shadow-md transition-shadow hover:shadow-lg">
+            <Link
+                href={link}
+                className="text-center text-sm font-bold text-foreground hover:underline sm:text-base"
+            >
                 {title}
             </Link>
-            <div className="flex items-center justify-center w-full px-6 mt-4 gap-4 md:gap-8">
-                <div className="text-[clamp(2.5rem, 7vw, 6rem)] text-gray-900 dark:text-gray-100 flex-shrink-0">
+            <div className="mt-3 flex w-full min-w-0 flex-1 items-center justify-between gap-3 px-1 sm:gap-4">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center text-muted-foreground sm:h-10 sm:w-10 [&_svg]:h-6 [&_svg]:w-6 sm:[&_svg]:h-7 sm:[&_svg]:w-7">
                     {icon}
                 </div>
-                <p className="text-[clamp(2.5rem, 8vw, 6.5rem)] font-extrabold text-gray-900 dark:text-gray-100 min-w-0 truncate text-nowrap">
+                <p
+                    className="min-w-0 flex-1 overflow-visible text-right text-lg font-extrabold tabular-nums text-foreground sm:text-xl md:text-2xl"
+                    title={typeof value === "string" ? value : String(value)}
+                >
                     {value}
                 </p>
             </div>

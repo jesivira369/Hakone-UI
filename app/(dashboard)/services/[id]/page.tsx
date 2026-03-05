@@ -34,19 +34,19 @@ export default function ServiceDetails() {
     if (error || !service) return <p className="p-6 text-red-500">Error al cargar el servicio.</p>;
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Detalles del Servicio</h1>
-                <Button variant="outline" onClick={() => setEditModalOpen(true)}>
+        <div className="min-w-0 space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h1 className="text-xl font-bold sm:text-2xl">Detalles del Servicio</h1>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={() => setEditModalOpen(true)}>
                     <Edit size={16} className="mr-2" /> Editar Servicio
                 </Button>
             </div>
 
-            <Card className="mb-6">
+            <Card className="overflow-hidden rounded-xl shadow-md">
                 <CardHeader>
                     <CardTitle>Información del Servicio</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <p className="text-gray-500">Descripción:</p>
                         <p className="font-medium">{service.description}</p>
@@ -71,13 +71,13 @@ export default function ServiceDetails() {
             </Card>
 
             {service.parts && service.parts.length > 0 && (
-                <Card className="mb-6">
+                <Card className="overflow-hidden rounded-xl shadow-md">
                     <CardHeader>
                         <CardTitle>Repuestos</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="rounded-lg border overflow-hidden">
-                            <table className="w-full text-sm">
+                        <div className="overflow-x-auto rounded-lg border">
+                            <table className="w-full min-w-[400px] text-sm">
                                 <thead className="bg-muted">
                                     <tr>
                                         <th className="px-3 py-2 text-left font-medium">Repuesto</th>
@@ -112,7 +112,7 @@ export default function ServiceDetails() {
                 </Card>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <Card>
                     <CardHeader>
                         <CardTitle>Información del Cliente</CardTitle>

@@ -98,25 +98,25 @@ export default function DashboardOverview() {
         {
             title: "Clientes",
             value: overview?.totalClients ?? 0,
-            icon: <Users size={50} />,
+            icon: <Users />,
             link: "/clients",
         },
         {
             title: "Bicicletas",
             value: overview?.totalBicycles ?? 0,
-            icon: <Bike size={50} />,
+            icon: <Bike />,
             link: "/bikes",
         },
         {
             title: "Servicios Completados",
             value: overview?.totalServicesDone ?? 0,
-            icon: <Wrench size={50} />,
+            icon: <Wrench />,
             link: "/services",
         },
         {
             title: "Ingresos Totales",
             value: formatCurrency(overview?.totalRevenue ?? 0),
-            icon: <DollarSign size={50} />,
+            icon: <DollarSign />,
             link: "/dashboard",
         },
     ];
@@ -149,42 +149,42 @@ export default function DashboardOverview() {
         : [];
 
     return (
-        <div className="grid gap-6 p-6">
+        <div className="grid gap-6">
             {/* Stats Cards */}
-            <div className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {stats.map((stat, index) => (
                     <StatsCard key={index} {...stat} />
                 ))}
             </div>
 
             {/* Filtros de fecha + Export */}
-            <div className="flex flex-wrap gap-3 items-end">
-                <div>
-                    <label className="block text-sm font-medium mb-1">Desde</label>
+            <div className="flex flex-wrap items-end gap-3">
+                <div className="w-full min-w-0 sm:w-auto">
+                    <label className="mb-1 block text-sm font-medium">Desde</label>
                     <Input
                         type="date"
                         value={dateFrom}
                         onChange={(e) => setDateFrom(e.target.value)}
-                        className="w-40"
+                        className="w-full sm:w-40"
                     />
                 </div>
-                <div>
-                    <label className="block text-sm font-medium mb-1">Hasta</label>
+                <div className="w-full min-w-0 sm:w-auto">
+                    <label className="mb-1 block text-sm font-medium">Hasta</label>
                     <Input
                         type="date"
                         value={dateTo}
                         onChange={(e) => setDateTo(e.target.value)}
-                        className="w-40"
+                        className="w-full sm:w-40"
                     />
                 </div>
                 <Button onClick={handleApplyFilters}>Aplicar filtros</Button>
-                <Button variant="outline" onClick={handleExport} className="flex items-center gap-2">
-                    <Download size={16} /> Exportar Excel
+                <Button variant="outline" onClick={handleExport} className="inline-flex items-center gap-2">
+                    <Download size={16} aria-hidden /> Exportar Excel
                 </Button>
             </div>
 
             {/* Charts */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 {revenueLoading ? (
                     <div className="h-64 flex items-center justify-center text-muted-foreground">
                         Cargando ingresos...
@@ -211,10 +211,10 @@ export default function DashboardOverview() {
 
             {/* Top Clientes */}
             {!topClientsLoading && topClients && topClients.length > 0 && (
-                <div>
-                    <h2 className="text-lg font-semibold mb-3">Top Clientes</h2>
-                    <div className="rounded-lg border overflow-hidden">
-                        <table className="w-full text-sm">
+                <div className="min-w-0">
+                    <h2 className="mb-3 text-lg font-semibold">Top Clientes</h2>
+                    <div className="overflow-x-auto rounded-lg border">
+                        <table className="w-full min-w-[500px] text-sm">
                             <thead className="bg-muted">
                                 <tr>
                                     <th className="px-4 py-2 text-left font-medium">Cliente</th>

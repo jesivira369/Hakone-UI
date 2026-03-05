@@ -80,15 +80,16 @@ export default function Mechanics() {
     if (error) return <p>Error al cargar los mecánicos.</p>;
 
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Mecánicos</h1>
-            <div className="flex justify-between mb-4 gap-4">
+        <div className="min-w-0 space-y-4">
+            <h1 className="text-xl font-bold sm:text-2xl">Mecánicos</h1>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Input
                     placeholder="Buscar mecánico..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    className="w-full min-w-0 sm:max-w-xs"
                 />
-                <Button onClick={() => { setSelectedMechanic(null); setModalOpen(true); }}>Nuevo Mecánico</Button>
+                <Button className="shrink-0" onClick={() => { setSelectedMechanic(null); setModalOpen(true); }}>Nuevo Mecánico</Button>
             </div>
             <DataTable
                 columns={columns}

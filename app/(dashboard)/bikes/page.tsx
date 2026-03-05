@@ -97,15 +97,16 @@ export default function Bikes() {
     if (error) return <p>Error al cargar las bicicletas.</p>;
 
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Bicicletas</h1>
-            <div className="flex justify-between mb-4 gap-4">
+        <div className="min-w-0 space-y-4">
+            <h1 className="text-xl font-bold sm:text-2xl">Bicicletas</h1>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Input
                     placeholder="Buscar bicicleta..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    className="w-full min-w-0 sm:max-w-xs"
                 />
-                <Button onClick={() => { setSelectedBike(null); setModalOpen(true); }}>Nueva Bicicleta</Button>
+                <Button className="shrink-0" onClick={() => { setSelectedBike(null); setModalOpen(true); }}>Nueva Bicicleta</Button>
             </div>
             <DataTable
                 columns={columns}

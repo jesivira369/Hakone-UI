@@ -1,19 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Header } from "@/components/ui/Header";
-import { Sidebar } from "@/components/ui/Sidebar";
+import { SidebarDesktop } from "@/components/ui/SidebarDesktop";
+import { SidebarMobile } from "@/components/ui/SidebarMobile";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const [isExpanded, setIsExpanded] = useState(true);
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    return (
-        <div className="flex h-screen bg-background overflow-hidden">
-            <Sidebar isExpanded={isExpanded} setIsExpanded={setIsExpanded} />
-            <div className={`flex flex-1 flex-col transition-all duration-300 ${isExpanded ? "w-cal(100 - 14rem)" : "w-full"}`}>
-                <Header />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background p-2 w-full">{children}</main>
-            </div>
-        </div>
-    );
+  const handleMobileMenuOpenChange = useCallback((open: boolean) => {
+    setMobileMenuOpen(open);
+  }, []);
+
+  return (
+    <div className="flex h-dvh flex-col overflow-hidden bg-background md:flex-row">
+      <SidebarDesktop
+        isExpanded={sidebarExpanded}
+        onToggle={() => setSidebarExpanded((p) => !p)}
+      />
+      <SidebarMobile
+        open={mobileMenuOpen}
+        onOpenChange={handleMobileMenuOpenChange}
+      />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <Header onMenuClick={() => setMobileMenuOpen(true)} />
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-4 md:p-6 xl:p-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
 }

@@ -1,42 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
-function verifyTokenEdge(token: string): boolean {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return false;
-
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-    if (!payload?.exp) return false;
-
-    return payload.exp * 1000 > Date.now();
-  } catch {
-    return false;
-  }
-}
-
 export function middleware(req: NextRequest) {
+  // El token vive en cookie HttpOnly; aquí solo gateamos presencia.
+  // La validación real (exp/firma/claims) ocurre en el backend.
   const token = req.cookies.get("token")?.value;
-  const isProtectedRoute =
-    req.nextUrl.pathname.startsWith("/dashboard") ||
-    req.nextUrl.pathname.startsWith("/calendar") ||
-    req.nextUrl.pathname.startsWith("/clients") ||
-    req.nextUrl.pathname.startsWith("/bikes") ||
-    req.nextUrl.pathname.startsWith("/services") ||
-    req.nextUrl.pathname.startsWith("/mechanics");
+  const path = req.nextUrl.pathname;
 
-  if (!token && isProtectedRoute) {
+  // Registro deshabilitado: redirige siempre a login.
+  if (path === "/register" || path.startsWith("/register/")) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  if (token && isProtectedRoute) {
-    const isValid = verifyTokenEdge(token);
+  const isProtectedRoute =
+    path.startsWith("/dashboard") ||
+    path.startsWith("/calendar") ||
+    path.startsWith("/clients") ||
+    path.startsWith("/bikes") ||
+    path.startsWith("/services") ||
+    path.startsWith("/mechanics");
 
-    if (!isValid) {
-      const response = NextResponse.redirect(new URL("/login", req.url));
-      response.cookies.delete("token");
-      response.cookies.delete("user");
-      return response;
-    }
+  if (!token && isProtectedRoute) {
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   return NextResponse.next();
@@ -44,6 +28,7 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/register/:path*",
     "/dashboard/:path*",
     "/calendar/:path*",
     "/clients/:path*",

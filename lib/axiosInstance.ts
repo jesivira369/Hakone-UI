@@ -1,5 +1,4 @@
 import axios from "axios";
-import Cookies from "js-cookie";
 
 const api = axios.create({
   baseURL: "/api/v1",
@@ -9,32 +8,19 @@ const api = axios.create({
   },
 });
 
-const publicRoutes = ["/auth/login", "/auth/register"];
-
-api.interceptors.request.use(
-  (config) => {
-    if (!publicRoutes.some((route) => config.url?.includes(route))) {
-      const token = Cookies.get("token");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+const publicApiRoutes = ["/auth/login", "/auth/register", "/auth/me", "/auth/logout"];
+const publicPages = ["/login", "/register", "/register/success"];
 
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      console.warn("Token expirado, redirigiendo al login...");
-
-      Cookies.remove("token");
-      Cookies.remove("user");
+      console.warn("No autorizado (401), redirigiendo al login...");
 
       if (
-        !publicRoutes.some((route) => window.location.pathname.includes(route))
+        typeof window !== "undefined" &&
+        !publicPages.some((p) => window.location.pathname.startsWith(p)) &&
+        !publicApiRoutes.some((route) => String(error.config?.url ?? "").includes(route))
       ) {
         window.location.href = "/login";
       }

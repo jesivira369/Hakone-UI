@@ -62,6 +62,13 @@ const statusStyles: Record<string, string> = {
     [ServiceStatus.CANCELED]: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
 };
 
+const statusDot: Record<string, string> = {
+    [ServiceStatus.SCHEDULED]: "bg-sky-500",
+    [ServiceStatus.IN_PROGRESS]: "bg-amber-500",
+    [ServiceStatus.COMPLETED]: "bg-green-500",
+    [ServiceStatus.CANCELED]: "bg-gray-500",
+};
+
 export default function CalendarPage() {
     const router = useRouter();
     const [viewDate, setViewDate] = useState(() => new Date());
@@ -112,7 +119,8 @@ export default function CalendarPage() {
     const dayServices = selectedDay ? servicesByDay[toDateKey(selectedDay)] ?? [] : [];
 
     const today = useMemo(() => new Date(), []);
-    const calendarPanelHeight = "clamp(420px, calc(100dvh - 230px), 920px)";
+    // Más alto y dominante para que el calendario se vea “grande” en desktop.
+    const calendarPanelHeight = "clamp(560px, calc(100dvh - 180px), 1040px)";
 
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-3 sm:gap-4">
@@ -187,7 +195,7 @@ export default function CalendarPage() {
                     style={{ height: calendarPanelHeight }}
                 >
                     <div className="h-full min-h-0 w-full overflow-x-auto">
-                        <div className="flex h-full min-h-0 min-w-[320px] flex-col p-3 sm:p-4">
+                        <div className="flex h-full min-h-0 min-w-[320px] flex-col p-3 sm:p-5 lg:p-6">
                             {/* Días de la semana (fila fija) */}
                             <div className="grid grid-cols-7 gap-px">
                                 {WEEKDAYS.map((day) => (
@@ -201,7 +209,7 @@ export default function CalendarPage() {
                             </div>
 
                             {/* 6 semanas x 7 días: siempre misma malla */}
-                            <div className="mt-1 grid min-h-0 flex-1 grid-cols-7 grid-rows-6 gap-px">
+                            <div className="mt-2 grid min-h-0 flex-1 grid-cols-7 grid-rows-6 gap-1 sm:gap-1.5">
                                 {calendarDays.map((cell, i) => {
                                     if (cell === null) {
                                         return <div key={`empty-${i}`} className="h-full min-h-0 rounded-md bg-muted/20" />;
@@ -219,26 +227,39 @@ export default function CalendarPage() {
                                             key={key}
                                             type="button"
                                             onClick={() => setSelectedDay(cell)}
-                                            className={`flex h-full min-h-0 min-w-0 flex-col items-start justify-start gap-1 overflow-hidden rounded-md border border-border/40 bg-background/80 p-2 text-left transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isToday ? "ring-2 ring-primary bg-primary/5" : ""}`}
+                                            className={`flex h-full min-h-0 min-w-0 flex-col items-start justify-start gap-1 overflow-hidden rounded-lg border border-border/50 bg-background/90 p-2.5 text-left transition-colors hover:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-3 ${isToday ? "ring-2 ring-primary bg-primary/5" : ""}`}
                                         >
-                                            <span
-                                                className={`shrink-0 text-sm font-medium ${isToday ? "text-primary" : "text-foreground"}`}
-                                            >
-                                                {cell.getDate()}
-                                            </span>
+                                            <div className="flex w-full items-center justify-between gap-2">
+                                                <span
+                                                    className={`shrink-0 text-sm font-semibold ${isToday ? "text-primary" : "text-foreground"}`}
+                                                >
+                                                    {cell.getDate()}
+                                                </span>
+                                                {dayServicesList.length > 0 && (
+                                                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                                        {dayServicesList.length}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="mt-0.5 flex min-h-0 min-w-0 flex-1 flex-col justify-start gap-0.5 overflow-hidden">
-                                                {dayServicesList.slice(0, 3).map((s) => (
+                                                {dayServicesList.slice(0, 2).map((s) => (
                                                     <div
                                                         key={s.id}
-                                                        className={`truncate rounded px-1.5 py-0.5 text-xs ${statusStyles[s.status] ?? "bg-muted text-muted-foreground"}`}
+                                                        className={`flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-[10px] leading-tight sm:text-xs ${statusStyles[s.status] ?? "bg-muted text-muted-foreground"}`}
                                                         title={s.description}
                                                     >
-                                                        {s.description?.slice(0, 28) ?? "—"}
+                                                        <span
+                                                            className={`h-2 w-2 shrink-0 rounded-full ${statusDot[s.status] ?? "bg-muted-foreground"}`}
+                                                            aria-hidden
+                                                        />
+                                                        <span className="min-w-0 flex-1 text-center line-clamp-2 break-words">
+                                                            {s.description ?? "—"}
+                                                        </span>
                                                     </div>
                                                 ))}
-                                                {dayServicesList.length > 3 && (
-                                                    <span className="shrink-0 px-1.5 text-xs text-muted-foreground">
-                                                        +{dayServicesList.length - 3} más
+                                                {dayServicesList.length > 2 && (
+                                                    <span className="shrink-0 px-1.5 text-[11px] text-muted-foreground">
+                                                        +{dayServicesList.length - 2} más
                                                     </span>
                                                 )}
                                             </div>

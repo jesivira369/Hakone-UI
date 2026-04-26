@@ -4,6 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SIDEBAR_MENU_ITEMS } from "./sidebar-config";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/auth-provider";
+import type { UserRole } from "@/lib/types";
+
+type MenuItem = (typeof SIDEBAR_MENU_ITEMS)[number] & { roles?: UserRole[] };
 
 interface SidebarNavContentProps {
   /** Desktop: labels hidden when collapsed. Mobile: always show labels. */
@@ -14,10 +18,16 @@ interface SidebarNavContentProps {
 
 export function SidebarNavContent({ showLabels = true, className }: SidebarNavContentProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   return (
     <ul className={cn("flex flex-1 flex-col gap-1 px-2 py-4", className)}>
-      {SIDEBAR_MENU_ITEMS.map((item) => (
+      {(SIDEBAR_MENU_ITEMS as readonly MenuItem[]).filter((item) => {
+        const roles = item.roles;
+        if (!roles) return true;
+        if (!user?.role) return false;
+        return roles.includes(user.role);
+      }).map((item) => (
         <li key={item.href}>
           <Link
             href={item.href}

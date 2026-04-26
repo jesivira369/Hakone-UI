@@ -7,3 +7,4 @@ export * from "./statsCards";
 export * from "./barChart";
 export * from "./lineChart";
 export * from "./stats";
+export * from "./user";

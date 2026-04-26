@@ -13,6 +13,15 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "react-toastify";
 import { StatsOverview, RevenueStats, ServicesByStatus, TopClientItem } from "@/lib/types";
+import Link from "next/link";
+
+type UpcomingService = {
+    id: number;
+    description: string;
+    scheduledAt?: string;
+    client?: { id: number; name: string } | null;
+    bicycle?: { id: number; brand: string; model: string } | null;
+};
 
 export default function DashboardOverview() {
     const [dateFrom, setDateFrom] = useState("");
@@ -60,6 +69,14 @@ export default function DashboardOverview() {
             if (appliedTo) params.set("dateTo", appliedTo);
             const { data } = await api.get(`/statistics/top-clients?${params.toString()}`);
             return data;
+        },
+    });
+
+    const { data: upcoming, isLoading: upcomingLoading } = useQuery<UpcomingService[]>({
+        queryKey: ["services-upcoming", "7d"],
+        queryFn: async () => {
+            const { data } = await api.get("/services/upcoming?days=7&mode=scheduled");
+            return data as UpcomingService[];
         },
     });
 
@@ -193,7 +210,7 @@ export default function DashboardOverview() {
                     <CustomBarChart
                         data={revenueChartData}
                         title="Ingresos mensuales"
-                        label="Ingresos (USD)"
+                        label="Ingresos"
                     />
                 )}
                 {statusLoading ? (
@@ -206,6 +223,46 @@ export default function DashboardOverview() {
                         title="Servicios por estado"
                         label="Cantidad"
                     />
+                )}
+            </div>
+
+            {/* Próximos servicios */}
+            <div className="min-w-0 rounded-xl border bg-card p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold">Próximos 7 días</h2>
+                    <Link href="/calendar" className="text-sm text-primary hover:underline underline-offset-4">
+                        Ver calendario
+                    </Link>
+                </div>
+                {upcomingLoading ? (
+                    <div className="mt-3 text-sm text-muted-foreground">Cargando...</div>
+                ) : !upcoming || upcoming.length === 0 ? (
+                    <div className="mt-3 text-sm text-muted-foreground">No tienes servicios próximos.</div>
+                ) : (
+                    <div className="mt-3 grid gap-2">
+                        {upcoming.slice(0, 5).map((s) => (
+                            <Link
+                                key={s.id}
+                                href={`/services/${s.id}`}
+                                className="flex items-center justify-between gap-3 rounded-lg border bg-background/70 px-3 py-2 hover:bg-accent/20"
+                            >
+                                <div className="min-w-0">
+                                    <div className="truncate text-sm font-medium">{s.description}</div>
+                                    <div className="truncate text-xs text-muted-foreground">
+                                        {s.client?.name ?? "—"} · {s.bicycle ? `${s.bicycle.brand} ${s.bicycle.model}` : "—"}
+                                    </div>
+                                </div>
+                                <div className="shrink-0 text-xs text-muted-foreground">
+                                    {s.scheduledAt ? String(s.scheduledAt).slice(0, 10) : ""}
+                                </div>
+                            </Link>
+                        ))}
+                        {upcoming.length > 5 && (
+                            <div className="text-xs text-muted-foreground">
+                                +{upcoming.length - 5} más…
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
 

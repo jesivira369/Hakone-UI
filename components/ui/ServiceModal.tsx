@@ -87,6 +87,7 @@ interface ServiceModalProps {
 export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     const queryClient = useQueryClient();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [priceInput, setPriceInput] = useState<string>("");
 
     // Parts (new format: name, quantity, unitPrice)
     const [parts, setParts] = useState<ServicePartInput[]>([]);
@@ -117,7 +118,6 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         handleSubmit,
         setValue,
         reset,
-        watch,
         formState: { errors },
     } = useForm({
         resolver: zodResolver(serviceSchema),
@@ -180,6 +180,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         if (service) {
             setValue("description", service.description);
             setValue("price", service.price);
+            setPriceInput(String(service.price));
             setValue(
                 "scheduledAt",
                 toDateTimeLocal(service.scheduledAt ?? null) ||
@@ -217,6 +218,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             setNewMechanic({ name: "" });
             setNewClient({ name: "", phone: "", email: "" });
             setParts([]);
+            setPriceInput("");
         }
     }, [service, setValue, reset]);
 
@@ -708,23 +710,25 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                         />
                                         <Input
                                             className="col-span-2"
-                                            type="number"
-                                            min={1}
-                                            value={part.quantity}
-                                            onChange={(e) =>
-                                                updatePart(i, "quantity", Number(e.target.value))
-                                            }
+                                            inputMode="numeric"
+                                            placeholder="1"
+                                            value={String(part.quantity)}
+                                            onChange={(e) => {
+                                                const next = e.target.value.replace(/[^\d]/g, "");
+                                                updatePart(i, "quantity", next === "" ? 1 : Number(next));
+                                            }}
                                         />
                                         <Input
                                             className="col-span-3"
-                                            type="number"
-                                            min={0}
-                                            step="0.01"
+                                            inputMode="decimal"
                                             placeholder="0.00"
-                                            value={part.unitPrice}
-                                            onChange={(e) =>
-                                                updatePart(i, "unitPrice", parseFloat(e.target.value) || 0)
-                                            }
+                                            value={String(part.unitPrice)}
+                                            onChange={(e) => {
+                                                const next = e.target.value.replace(/[^\d.,]/g, "");
+                                                const normalized = next.replace(",", ".");
+                                                const parsed = normalized === "" ? 0 : Number(normalized);
+                                                updatePart(i, "unitPrice", Number.isFinite(parsed) ? parsed : 0);
+                                            }}
                                         />
                                         <Button
                                             className="col-span-2"
@@ -744,18 +748,27 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                     {/* ── Precio ── */}
                     <div>
                         <label className="block text-sm font-medium">Precio del servicio</label>
-                        <div className="relative">
-                            <Input
-                                type="text"
-                                value={formatCurrency(watch("price"))}
-                                onChange={(e) =>
-                                    setValue("price", parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0)
+                        <Input
+                            inputMode="decimal"
+                            placeholder="Ej: 1200.50"
+                            value={priceInput}
+                            onChange={(e) => {
+                                const next = e.target.value.replace(/[^\d.,]/g, "");
+                                setPriceInput(next);
+
+                                // Normaliza: acepta "," o "." como separador decimal (usa ".")
+                                const normalized = next.replace(",", ".");
+                                const parsed = normalized === "" ? 0 : Number(normalized);
+                                setValue("price", Number.isFinite(parsed) ? parsed : 0, { shouldValidate: true });
+                            }}
+                            onBlur={() => {
+                                const normalized = priceInput.replace(",", ".");
+                                const parsed = normalized === "" ? 0 : Number(normalized);
+                                if (Number.isFinite(parsed)) {
+                                    setPriceInput(parsed === 0 ? "" : String(parsed));
                                 }
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
-                                USD
-                            </span>
-                        </div>
+                            }}
+                        />
                         {errors.price && (
                             <p className="text-red-500 text-sm">{errors.price.message}</p>
                         )}

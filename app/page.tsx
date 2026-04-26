@@ -33,20 +33,20 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       {/* --- NAV --- */}
       <nav className="fixed top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-3">
+        <div className="container mx-auto flex min-h-16 items-center justify-between gap-3 px-4 py-3">
+          <Link href="/" className="flex shrink-0 items-center gap-2 sm:gap-3">
             <Image
               src="/HakoneIsotipo.png"
               alt="Hakone"
               width={32}
               height={32}
-              className="rounded-full"
+              className="h-8 w-8 rounded-full"
               priority
             />
-            <span className="text-xl font-bold tracking-tight">HAKONE</span>
+            <span className="text-lg font-bold tracking-tight sm:text-xl">HAKONE</span>
           </Link>
 
-          <div className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
+          <div className="hidden items-center gap-8 text-sm font-medium text-muted-foreground lg:flex">
             <a href="#features" className="transition-colors hover:text-primary">
               Funcionalidades
             </a>
@@ -61,14 +61,18 @@ export default function LandingPage() {
             </a>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline" className="rounded-full">
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              asChild
+              variant="outline"
+              className="h-9 rounded-full px-3 text-sm whitespace-nowrap sm:h-10 sm:px-5"
+            >
               <Link href="/login">Iniciar sesión</Link>
             </Button>
             <Button
               asChild
               variant="default"
-              className="rounded-full bg-primary px-6 text-white hover:bg-primary/90"
+              className="h-9 rounded-full bg-primary px-3 text-sm text-white whitespace-nowrap hover:bg-primary/90 sm:h-10 sm:px-6"
             >
               <Link href="/login">Probar Hakone</Link>
             </Button>

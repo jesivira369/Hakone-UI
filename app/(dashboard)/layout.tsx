@@ -1,21 +1,33 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Header } from "@/components/ui/Header";
 import { SidebarDesktop } from "@/components/ui/SidebarDesktop";
 import { SidebarMobile } from "@/components/ui/SidebarMobile";
+import { useAuth } from "@/context/auth-provider";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, isLoading } = useAuth();
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleMobileMenuOpenChange = useCallback((open: boolean) => {
     setMobileMenuOpen(open);
   }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) router.replace(`/login?next=${encodeURIComponent(pathname || "/dashboard")}`);
+  }, [isLoading, user, router, pathname]);
+
+  if (isLoading || !user) return null;
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background md:flex-row">

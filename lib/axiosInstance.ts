@@ -8,7 +8,10 @@ const api = axios.create({
   },
 });
 
-const publicApiRoutes = ["/auth/login", "/auth/register", "/auth/me", "/auth/logout"];
+// Estas rutas pueden devolver 401 de forma esperable durante auth;
+// NO queremos redirigir al login para evitar loops durante el propio login/register/logout.
+// Importante: NO incluir /auth/me aquí, porque un 401 en /me debe llevar al usuario a /login.
+const publicApiRoutes = ["/auth/login", "/auth/register", "/auth/logout"];
 const publicPages = ["/login", "/register", "/register/success"];
 
 api.interceptors.response.use(

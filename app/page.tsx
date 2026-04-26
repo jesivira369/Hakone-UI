@@ -46,7 +46,7 @@ export default function LandingPage() {
             <span className="text-lg font-bold tracking-tight sm:text-xl">HAKONE</span>
           </Link>
 
-          <div className="hidden items-center gap-8 text-sm font-medium text-muted-foreground lg:flex">
+          <div className="hidden items-center gap-4 text-xs font-medium text-muted-foreground md:flex lg:gap-8 lg:text-sm">
             <a href="#features" className="transition-colors hover:text-primary">
               Funcionalidades
             </a>
@@ -65,14 +65,14 @@ export default function LandingPage() {
             <Button
               asChild
               variant="outline"
-              className="h-9 rounded-full px-3 text-sm whitespace-nowrap sm:h-10 sm:px-5"
+              className="h-9 rounded-full px-3 text-sm whitespace-nowrap md:px-4 lg:h-10 lg:px-5"
             >
               <Link href="/login">Iniciar sesión</Link>
             </Button>
             <Button
               asChild
               variant="default"
-              className="h-9 rounded-full bg-primary px-3 text-sm text-white whitespace-nowrap hover:bg-primary/90 sm:h-10 sm:px-6"
+              className="h-9 rounded-full bg-primary px-3 text-sm text-white whitespace-nowrap hover:bg-primary/90 md:px-4 lg:h-10 lg:px-6"
             >
               <Link href="/login">Probar Hakone</Link>
             </Button>

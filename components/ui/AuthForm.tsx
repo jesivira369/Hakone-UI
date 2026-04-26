@@ -38,10 +38,7 @@ export function AuthForm({ type }: AuthFormProps) {
 
         try {
             if (type === "login") {
-                const response = await login(data.email, data.password);
-                if (!response || !response.accessToken) {
-                    throw new Error("No se recibió un token válido.");
-                }
+                await login(data.email, data.password);
                 router.replace("/dashboard");
             } else {
                 const response = await register(data.email, data.password, data.shopName);
@@ -109,10 +106,7 @@ export function AuthForm({ type }: AuthFormProps) {
                         <div className="mt-6 text-center text-sm">
                             {type === "login" ? (
                                 <p>
-                                    ¿No tienes una cuenta?{" "}
-                                    <Link href="/register" className="text-primary underline-offset-4 hover:underline">
-                                        Regístrate aquí
-                                    </Link>
+                                    {/* Registro deshabilitado: creación de usuarios solo por admin */}
                                 </p>
                             ) : (
                                 <p>

@@ -6,8 +6,10 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: "/api/:path*",
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`,
+        // Proxy BFF: el browser llama a /api/v1/* (same-origin)
+        // y Next lo reescribe al backend externo.
+        source: "/api/v1/:path*",
+        destination: `${apiUrl}/api/v1/:path*`,
       },
     ];
   },

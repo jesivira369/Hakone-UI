@@ -1,4 +1,4 @@
-import { Bike, Calendar, ClipboardList, Home, Users, Wrench } from "lucide-react";
+import { Bike, Calendar, ClipboardList, Home, Users, Wrench, Shield } from "lucide-react";
 
 export const SIDEBAR_MENU_ITEMS = [
   { icon: Home, label: "Dashboard", href: "/dashboard" },
@@ -7,4 +7,6 @@ export const SIDEBAR_MENU_ITEMS = [
   { icon: Users, label: "Clientes", href: "/clients" },
   { icon: Bike, label: "Bicicletas", href: "/bikes" },
   { icon: Wrench, label: "Mecánicos", href: "/mechanics" },
+  // Solo SUPER_ADMIN
+  { icon: Shield, label: "Usuarios", href: "/users", roles: ["SUPER_ADMIN"] },
 ] as const;

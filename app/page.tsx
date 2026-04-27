@@ -495,7 +495,7 @@ export default function LandingPage() {
               },
               {
                 q: "¿Puedo usarlo desde el celular?",
-                a: "Sí. La interfaz es responsive y funciona bien en tablet/celular para uso en el taller.",
+                a: "Sí. La interfaz de la app se adapta a cualquier dispositivo y funciona bien en tablet/celular para uso en el taller.",
               },
               {
                 q: "¿Cómo funcionan los roles de usuario?",

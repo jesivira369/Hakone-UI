@@ -9,4 +9,5 @@ export const SIDEBAR_MENU_ITEMS = [
   { icon: Wrench, label: "Mecánicos", href: "/mechanics" },
   // Solo SUPER_ADMIN
   { icon: Shield, label: "Usuarios", href: "/users", roles: ["SUPER_ADMIN"] },
+  { icon: Users, label: "Contactos", href: "/contact-requests", roles: ["SUPER_ADMIN"] },
 ] as const;

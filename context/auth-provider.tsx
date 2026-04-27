@@ -23,28 +23,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         let cancelled = false;
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 8000);
 
         (async () => {
             // Evita spamear /auth/me en pantallas públicas (previene loops y requests innecesarios).
-            if (pathname?.startsWith("/login") || pathname?.startsWith("/register")) {
+            // Importante: `/` ahora es landing pública de marketing.
+            if (
+                pathname === "/" ||
+                pathname?.startsWith("/login") ||
+                pathname?.startsWith("/register") ||
+                pathname?.startsWith("/contact")
+            ) {
+                if (!cancelled) setIsLoading(false);
+                return;
+            }
+
+            // Si ya tenemos usuario, no revalidamos en cada navegación.
+            if (user) {
                 if (!cancelled) setIsLoading(false);
                 return;
             }
 
             try {
-                const me = await getMe();
+                if (!cancelled) setIsLoading(true);
+                const me = await getMe({ signal: controller.signal });
                 if (!cancelled) setUser(me.user as AuthUser);
             } catch {
                 if (!cancelled) setUser(null);
+
+                // En rutas protegidas, sin sesión => /login.
+                // (El interceptor también cubre 401; esto cubre timeouts/errores/redes.)
+                if (
+                    !cancelled &&
+                    pathname &&
+                    pathname !== "/" &&
+                    !pathname.startsWith("/login") &&
+                    !pathname.startsWith("/register") &&
+                    !pathname.startsWith("/contact")
+                ) {
+                    router.replace("/login");
+                }
             } finally {
+                window.clearTimeout(timeoutId);
                 if (!cancelled) setIsLoading(false);
             }
         })();
 
         return () => {
             cancelled = true;
+            window.clearTimeout(timeoutId);
+            controller.abort();
         };
-    }, [pathname]);
+    }, [pathname, router, user]);
 
     const login = async (email: string, password: string) => {
         setIsLoading(true);

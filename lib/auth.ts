@@ -39,7 +39,7 @@ export const logout = () => {
   });
 };
 
-export const getMe = async () => {
-  const { data } = await api.get("/auth/me");
+export const getMe = async (opts?: { signal?: AbortSignal }) => {
+  const { data } = await api.get("/auth/me", { signal: opts?.signal });
   return data as { user: { id: number; email: string; shopName: string; role: string } };
 };

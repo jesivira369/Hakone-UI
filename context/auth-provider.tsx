@@ -29,7 +29,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (async () => {
             // Evita spamear /auth/me en pantallas públicas (previene loops y requests innecesarios).
             // Importante: `/` ahora es landing pública de marketing.
-            if (pathname === "/" || pathname?.startsWith("/login") || pathname?.startsWith("/register")) {
+            if (
+                pathname === "/" ||
+                pathname?.startsWith("/login") ||
+                pathname?.startsWith("/register") ||
+                pathname?.startsWith("/contact")
+            ) {
                 if (!cancelled) setIsLoading(false);
                 return;
             }
@@ -41,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             try {
+                if (!cancelled) setIsLoading(true);
                 const me = await getMe({ signal: controller.signal });
                 if (!cancelled) setUser(me.user as AuthUser);
             } catch {
@@ -53,7 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     pathname &&
                     pathname !== "/" &&
                     !pathname.startsWith("/login") &&
-                    !pathname.startsWith("/register")
+                    !pathname.startsWith("/register") &&
+                    !pathname.startsWith("/contact")
                 ) {
                     router.replace("/login");
                 }

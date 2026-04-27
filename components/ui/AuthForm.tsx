@@ -3,16 +3,17 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { login, register } from "@/lib/auth";
+import { register } from "@/lib/auth";
 import { authSchema, registerSchema } from "@/lib/schemas";
 import { AuthError, AuthData } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ThemeProvider } from "next-themes";
+import { useAuth } from "@/context/auth-provider";
 
 type AuthFormProps = {
     type: "login" | "register";
@@ -21,6 +22,7 @@ type AuthFormProps = {
 export function AuthForm({ type }: AuthFormProps) {
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const { login: authLogin } = useAuth();
 
     const {
         register: formRegister,
@@ -31,6 +33,7 @@ export function AuthForm({ type }: AuthFormProps) {
     });
 
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const onSubmit = async (data: AuthData) => {
         setLoading(true);
@@ -38,8 +41,15 @@ export function AuthForm({ type }: AuthFormProps) {
 
         try {
             if (type === "login") {
-                await login(data.email, data.password);
-                router.replace("/dashboard");
+                // Importante: usar el AuthProvider para setear `user` antes de navegar,
+                // evitando el rebote a /login?next=... desde el DashboardLayout.
+                await authLogin(data.email, data.password);
+
+                const next = searchParams?.get("next");
+                // Evita open-redirects: solo aceptamos paths relativos internos.
+                const safeNext =
+                    next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+                router.replace(safeNext);
             } else {
                 const response = await register(data.email, data.password, data.shopName);
                 if (!response) {

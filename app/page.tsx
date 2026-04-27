@@ -4,6 +4,9 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
   ArrowRight,
   BarChart3,
@@ -20,6 +23,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Input } from "@/components/ui/input";
+import api from "@/lib/axiosInstance";
+import { toast } from "react-toastify";
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
@@ -28,7 +34,47 @@ const fadeIn = {
   transition: { duration: 0.6 },
 };
 
+const contactSchema = z.object({
+  name: z.string().min(2, "Tu nombre es requerido"),
+  shopName: z.string().min(2, "El nombre de la tienda es requerido"),
+  phone: z
+    .string()
+    .min(6, "El teléfono debe tener al menos 6 caracteres")
+    .regex(/^[+\d][\d\s\-().+]*$/, "Solo se permiten números"),
+  email: z.string().email("Debe ser un email válido"),
+  message: z.string().min(5, "Escribe un comentario").max(2000, "Máximo 2000 caracteres"),
+});
+
+type ContactForm = z.infer<typeof contactSchema>;
+
 export default function LandingPage() {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ContactForm>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: { name: "", shopName: "", phone: "", email: "", message: "" },
+  });
+
+  const onSubmitContact = async (data: ContactForm) => {
+    try {
+      await api.post("/contact-requests", data);
+      toast.success("¡Listo! Te contactaremos pronto.", {
+        className: "bg-green-600 text-white border border-green-700",
+      });
+      reset();
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : "No pudimos enviar tu mensaje. Intenta de nuevo.";
+      toast.error(msg, {
+        className: "bg-red-600 text-white border border-red-700",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       {/* --- NAV --- */}
@@ -56,6 +102,9 @@ export default function LandingPage() {
             <a href="#pricing" className="transition-colors hover:text-primary">
               Planes
             </a>
+            <a href="#contacto" className="transition-colors hover:text-primary">
+              Contacto
+            </a>
             <a href="#faq" className="transition-colors hover:text-primary">
               FAQ
             </a>
@@ -74,7 +123,7 @@ export default function LandingPage() {
               variant="default"
               className="h-9 rounded-full bg-primary px-3 text-sm text-white whitespace-nowrap hover:bg-primary/90 md:px-4 lg:h-10 lg:px-6"
             >
-              <Link href="/login">Probar Hakone</Link>
+              <a href="#contacto">Probar Hakone</a>
             </Button>
           </div>
         </div>
@@ -104,7 +153,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col justify-center gap-4 sm:flex-row">
               <Button asChild size="lg" className="h-12 bg-primary px-8 text-base transition-transform hover:scale-105">
-                <Link href="/login">Solicitar demo gratuita</Link>
+                <a href="#contacto">Solicitar demo gratuita</a>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-12 px-8 text-base">
                 <a href="#features">Ver funcionalidades</a>
@@ -302,9 +351,9 @@ export default function LandingPage() {
                 demanda con una vista semanal clara.
               </p>
               <Button asChild variant="link" className="h-auto p-0 font-bold text-primary">
-                <Link href="/login" className="inline-flex items-center gap-2">
+                <a href="#contacto" className="inline-flex items-center gap-2">
                   Conocer más sobre el calendario <ArrowRight className="h-4 w-4" />
-                </Link>
+                </a>
               </Button>
             </div>
           </div>
@@ -355,7 +404,7 @@ export default function LandingPage() {
                   asChild
                   className="w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/30 sm:w-auto"
                 >
-                  <Link href="/login">Empezar ahora</Link>
+                  <a href="#contacto">Empezar ahora</a>
                 </Button>
 
                 <Button asChild variant="link" className="h-auto p-0 font-bold text-primary">
@@ -366,6 +415,71 @@ export default function LandingPage() {
               </div>
             </Card>
           </div>
+        </div>
+      </section>
+
+      {/* --- CONTACTO (lead form) --- */}
+      <section id="contacto" className="bg-muted/20 py-24">
+        <div className="container mx-auto max-w-4xl px-4">
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <h2 className="text-3xl font-bold sm:text-4xl">Contacto</h2>
+            <p className="mt-3 text-muted-foreground">
+              Dejanos tus datos y un comentario. Te contactaremos para ayudarte a implementar Hakone en tu taller.
+            </p>
+          </div>
+
+          <Card className="border-border/60 bg-card p-6 shadow-lg sm:p-8">
+            <form onSubmit={handleSubmit(onSubmitContact)} className="space-y-4 sm:space-y-5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium">Nombre</label>
+                  <Input {...register("name")} placeholder="Tu nombre" className="mt-1" />
+                  {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Tienda</label>
+                  <Input {...register("shopName")} placeholder="Nombre del taller" className="mt-1" />
+                  {errors.shopName && <p className="text-sm text-destructive">{errors.shopName.message}</p>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium">Teléfono</label>
+                  <Input
+                    {...register("phone")}
+                    placeholder="Ej: +54 11 1234-5678"
+                    className="mt-1"
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^\d\s+\-().]/g, "");
+                      setValue("phone", value);
+                    }}
+                  />
+                  {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Email</label>
+                  <Input type="email" {...register("email")} placeholder="taller@email.com" className="mt-1" />
+                  {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">Comentario</label>
+                <textarea
+                  {...register("message")}
+                  className="mt-1 w-full rounded-md border border-border bg-background p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  rows={5}
+                  placeholder="Contanos qué necesitas y cuándo te gustaría empezar..."
+                />
+                {errors.message && <p className="text-sm text-destructive">{errors.message.message}</p>}
+              </div>
+
+              <Button type="submit" className="w-full py-3 text-base sm:text-lg" disabled={isSubmitting}>
+                {isSubmitting ? "Enviando..." : "Enviar"}
+              </Button>
+            </form>
+          </Card>
         </div>
       </section>
 
@@ -411,7 +525,7 @@ export default function LandingPage() {
               Unite a los talleres que ya optimizaron su tiempo y mejoraron la experiencia de sus clientes con Hakone.
             </p>
             <Button asChild size="lg" variant="secondary" className="h-14 rounded-full px-10 text-lg font-bold">
-              <Link href="/login">Empezar ahora</Link>
+              <a href="#contacto">Empezar ahora</a>
             </Button>
           </div>
         </div>
@@ -477,7 +591,7 @@ export default function LandingPage() {
                   </a>
                 </li>
                 <li>
-                  <a className="transition-colors hover:text-primary" href="#">
+                  <a className="transition-colors hover:text-primary" href="#contacto">
                     Contacto
                   </a>
                 </li>

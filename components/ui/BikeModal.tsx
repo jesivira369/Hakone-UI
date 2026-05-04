@@ -12,6 +12,7 @@ import api from "@/lib/axiosInstance";
 import { Client, Bike, ClientQuery } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "react-toastify";
+import { PhoneInputE164 } from "@/components/ui/PhoneInputE164";
 
 const bicycleSchema = z.object({
     brand: z.string().min(3, "La marca debe tener al menos 3 caracteres"),
@@ -23,8 +24,8 @@ const newClientSchema = z.object({
     name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
     phone: z
         .string()
-        .min(6, "El teléfono debe tener al menos 6 caracteres")
-        .regex(/^[+\d][\d\s\-().+]*$/, "Solo se permiten números"),
+        .min(8, "El teléfono debe tener al menos 8 caracteres")
+        .regex(/^\+[1-9]\d{6,14}$/, "Debe estar en formato internacional (E.164)"),
     email: z.string().email("Debe ser un email válido"),
 });
 
@@ -250,15 +251,10 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium mb-1">Teléfono</label>
-                                    <Input
+                                    <PhoneInputE164
                                         value={newClient.phone}
-                                        onChange={(e) =>
-                                            setNewClient((c) => ({
-                                                ...c,
-                                                phone: e.target.value.replace(/[^\d\s+\-().]/g, ""),
-                                            }))
-                                        }
-                                        placeholder="1234567"
+                                        onChange={(next) => setNewClient((c) => ({ ...c, phone: next }))}
+                                        placeholder="11 2345 6789"
                                     />
                                     {clientErrors.phone && <p className="text-red-500 text-xs mt-1">{clientErrors.phone}</p>}
                                 </div>

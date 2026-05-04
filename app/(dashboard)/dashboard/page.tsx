@@ -23,6 +23,14 @@ type UpcomingService = {
     bicycle?: { id: number; brand: string; model: string } | null;
 };
 
+type UpcomingReminder = {
+    id: number;
+    category: string;
+    scheduledReminderDate?: string | null;
+    client?: { id: number; name: string; phone: string } | null;
+    bicycle?: { id: number; brand: string; model: string } | null;
+};
+
 export default function DashboardOverview() {
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
@@ -77,6 +85,14 @@ export default function DashboardOverview() {
         queryFn: async () => {
             const { data } = await api.get("/services/upcoming?days=7&mode=scheduled");
             return data as UpcomingService[];
+        },
+    });
+
+    const { data: reminders, isLoading: remindersLoading } = useQuery<UpcomingReminder[]>({
+        queryKey: ["services-reminders-upcoming", "30d"],
+        queryFn: async () => {
+            const { data } = await api.get("/services/reminders/upcoming?days=30");
+            return data as UpcomingReminder[];
         },
     });
 
@@ -260,6 +276,48 @@ export default function DashboardOverview() {
                         {upcoming.length > 5 && (
                             <div className="text-xs text-muted-foreground">
                                 +{upcoming.length - 5} más…
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Recordatorios próximos */}
+            <div className="min-w-0 rounded-xl border bg-card p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold">Recordatorios (próximos 30 días)</h2>
+                    <Link href="/services" className="text-sm text-primary hover:underline underline-offset-4">
+                        Ver servicios
+                    </Link>
+                </div>
+                {remindersLoading ? (
+                    <div className="mt-3 text-sm text-muted-foreground">Cargando...</div>
+                ) : !reminders || reminders.length === 0 ? (
+                    <div className="mt-3 text-sm text-muted-foreground">No hay recordatorios próximos.</div>
+                ) : (
+                    <div className="mt-3 grid gap-2">
+                        {reminders.slice(0, 5).map((r) => (
+                            <Link
+                                key={r.id}
+                                href={`/services/${r.id}`}
+                                className="flex items-center justify-between gap-3 rounded-lg border bg-background/70 px-3 py-2 hover:bg-accent/20"
+                            >
+                                <div className="min-w-0">
+                                    <div className="truncate text-sm font-medium">
+                                        {r.client?.name ?? "—"} · {r.bicycle ? `${r.bicycle.brand} ${r.bicycle.model}` : "—"}
+                                    </div>
+                                    <div className="truncate text-xs text-muted-foreground">
+                                        Aviso: {r.scheduledReminderDate ? String(r.scheduledReminderDate).slice(0, 10) : "—"}
+                                    </div>
+                                </div>
+                                <div className="shrink-0 text-xs text-muted-foreground">
+                                    {r.category?.replaceAll("_", " ") ?? ""}
+                                </div>
+                            </Link>
+                        ))}
+                        {reminders.length > 5 && (
+                            <div className="text-xs text-muted-foreground">
+                                +{reminders.length - 5} más…
                             </div>
                         )}
                     </div>

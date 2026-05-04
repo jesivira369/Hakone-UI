@@ -11,13 +11,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Client } from "@/lib/types";
 import { toast } from "react-toastify";
+import { PhoneInputE164 } from "@/components/ui/PhoneInputE164";
 
 const clientSchema = z.object({
     name: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
     phone: z
         .string()
-        .min(6, "El teléfono debe tener al menos 6 caracteres")
-        .regex(/^[+\d][\d\s\-().+]*$/, "Solo se permiten números"),
+        .min(8, "El teléfono debe tener al menos 8 caracteres")
+        .regex(/^\+[1-9]\d{6,14}$/, "Debe estar en formato internacional (E.164)"),
     email: z.string().email("Debe ser un email válido"),
 });
 
@@ -40,6 +41,7 @@ export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
         handleSubmit,
         setValue,
         reset,
+        watch,
         formState: { errors },
     } = useForm({
         resolver: zodResolver(clientSchema),
@@ -102,13 +104,10 @@ export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
                     </div>
                     <div>
                         <label className="block text-sm font-medium">Teléfono</label>
-                        <Input
-                            {...register("phone")}
-                            placeholder="1234567890"
-                            onChange={(e) => {
-                                const value = e.target.value.replace(/[^\d\s+\-().]/g, "");
-                                setValue("phone", value);
-                            }}
+                        <PhoneInputE164
+                            value={watch("phone") ?? ""}
+                            onChange={(next) => setValue("phone", next, { shouldValidate: true })}
+                            placeholder="11 2345 6789"
                         />
                         {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
                     </div>

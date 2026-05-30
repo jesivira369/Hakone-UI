@@ -15,9 +15,11 @@ import { ServiceStatusUpdater } from "@/components/ui/ServiceStatusUpdater";
 import { DetailsSkeleton } from "@/components/ui/Skeleton/DetailsSkeleton";
 import { buildWaMeLink, buildWhatsAppReadyMessage } from "@/lib/whatsapp";
 import { toast } from "react-toastify";
+import { useAuth } from "@/context/auth-provider";
 
 export default function ServiceDetails() {
     const { id: serviceId } = useParams();
+    const { user } = useAuth();
     const [editModalOpen, setEditModalOpen] = useState(false);
 
     const { data: service, isLoading, error } = useQuery<Service>({
@@ -51,11 +53,13 @@ export default function ServiceDetails() {
                                 const msg = buildWhatsAppReadyMessage({
                                     clientName: service.client?.name ?? "",
                                     bikeLabel,
+                                    shopName: user?.shopName ?? "",
                                 });
                                 const link = buildWaMeLink({ phoneE164: phone, message: msg });
                                 window.open(link, "_blank", "noopener,noreferrer");
-                            } catch (e: any) {
-                                toast.error(e?.message ?? "No se pudo abrir WhatsApp", {
+                            } catch (e: unknown) {
+                                const msg = e instanceof Error ? e.message : "No se pudo abrir WhatsApp";
+                                toast.error(msg, {
                                     className: "bg-red-600 text-white border border-red-700",
                                 });
                             }

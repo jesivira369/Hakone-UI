@@ -156,7 +156,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     } = useInfiniteQuery<BikeQuery>({
         queryKey: ["bicycles"],
         queryFn: async ({ pageParam = 1 }) => {
-            const { data } = await api.get(`/bicycles?page=${pageParam}&limit=10`);
+            const { data } = await api.get(`/bicycles?page=${pageParam}&limit=50`);
             return data;
         },
         getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
@@ -170,7 +170,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     } = useInfiniteQuery<MechanicQuery>({
         queryKey: ["mechanics"],
         queryFn: async ({ pageParam = 1 }) => {
-            const { data } = await api.get(`/mechanics?page=${pageParam}&limit=10`);
+            const { data } = await api.get(`/mechanics?page=${pageParam}&limit=50`);
             return data;
         },
         getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
@@ -184,7 +184,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     } = useInfiniteQuery<ClientQuery>({
         queryKey: ["clients"],
         queryFn: async ({ pageParam = 1 }) => {
-            const { data } = await api.get(`/clients?page=${pageParam}&limit=10`);
+            const { data } = await api.get(`/clients?page=${pageParam}&limit=50`);
             return data;
         },
         getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
@@ -444,7 +444,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                     onScroll={(e) => {
                                         const el = e.currentTarget;
                                         if (
-                                            el.scrollHeight - el.scrollTop === el.clientHeight &&
+                                            el.scrollHeight - el.scrollTop - el.clientHeight <= 1 &&
                                             hasNextBike
                                         )
                                             fetchNextBike();
@@ -586,7 +586,6 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                                             phone: next,
                                                         }))
                                                     }
-                                                    placeholder="11 2345 6789"
                                                 />
                                                 {clientErrors.phone && (
                                                     <p className="text-red-500 text-xs mt-1">
@@ -642,7 +641,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                     onScroll={(e) => {
                                         const el = e.currentTarget;
                                         if (
-                                            el.scrollHeight - el.scrollTop === el.clientHeight &&
+                                            el.scrollHeight - el.scrollTop - el.clientHeight <= 1 &&
                                             hasNextMechanic
                                         )
                                             fetchNextMechanic();

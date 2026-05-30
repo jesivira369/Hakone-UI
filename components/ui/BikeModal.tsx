@@ -48,8 +48,6 @@ interface BicycleModalProps {
 export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
     const queryClient = useQueryClient();
     const [isLoading, setIsLoading] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [clientPage, setClientPage] = useState(1);
     const [clientMode, setClientMode] = useState<EntityMode>("existing");
     const [newClient, setNewClient] = useState({ name: "", phone: "", email: "" });
     const [clientErrors, setClientErrors] = useState<InlineClientErrors>({});
@@ -77,10 +75,10 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
     } = useInfiniteQuery<ClientQuery>({
         queryKey: ["clients"],
         queryFn: async ({ pageParam = 1 }) => {
-            const { data } = await api.get(`/clients?page=${pageParam}&limit=10`);
+            const { data } = await api.get(`/clients?page=${pageParam}&limit=50`);
             return data;
         },
-        getNextPageParam: (lastPage) => (lastPage.data.length === 10 ? clientPage + 1 : undefined),
+        getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
         initialPageParam: 1,
     });
 
@@ -201,8 +199,7 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
                                     <SelectContent
                                         onScroll={(e) => {
                                             const bottom =
-                                                e.currentTarget.scrollHeight - e.currentTarget.scrollTop ===
-                                                e.currentTarget.clientHeight;
+                                                e.currentTarget.scrollHeight - e.currentTarget.scrollTop - e.currentTarget.clientHeight <= 1;
                                             if (bottom && hasNextPage) fetchNextPage();
                                         }}
                                     >
@@ -254,7 +251,6 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
                                     <PhoneInputE164
                                         value={newClient.phone}
                                         onChange={(next) => setNewClient((c) => ({ ...c, phone: next }))}
-                                        placeholder="11 2345 6789"
                                     />
                                     {clientErrors.phone && <p className="text-red-500 text-xs mt-1">{clientErrors.phone}</p>}
                                 </div>

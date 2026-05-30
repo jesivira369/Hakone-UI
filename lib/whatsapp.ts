@@ -1,9 +1,10 @@
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 
-export function buildWhatsAppReadyMessage(opts: { clientName: string; bikeLabel: string }) {
+export function buildWhatsAppReadyMessage(opts: { clientName: string; bikeLabel: string; shopName: string }) {
   const name = (opts.clientName || "").trim() || "Hola";
   const bike = (opts.bikeLabel || "").trim() || "tu bici";
-  return `Hola ${name}! Te avisamos de Hakone que tu ${bike} está lista para retirar.`;
+  const shop = (opts.shopName || "").trim() || "el taller";
+  return `Hola ${name}! Te avisamos desde ${shop} que tu ${bike} está lista para retirar.`;
 }
 
 export function buildWaMeLink(opts: {

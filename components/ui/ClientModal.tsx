@@ -18,7 +18,7 @@ const clientSchema = z.object({
     phone: z
         .string()
         .min(8, "El teléfono debe tener al menos 8 caracteres")
-        .regex(/^\+[1-9]\d{6,14}$/, "Debe estar en formato internacional (E.164)"),
+        .regex(/^\+[1-9]\d{6,14}$/, "Número inválido para WhatsApp. Seleccioná el país e ingresá el número sin 0 ni 15."),
     email: z.string().email("Debe ser un email válido"),
 });
 
@@ -107,7 +107,6 @@ export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
                         <PhoneInputE164
                             value={watch("phone") ?? ""}
                             onChange={(next) => setValue("phone", next, { shouldValidate: true })}
-                            placeholder="11 2345 6789"
                         />
                         {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
                     </div>

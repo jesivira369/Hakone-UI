@@ -10,7 +10,8 @@ import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import { Eye, Edit, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/utils";
 import { toast } from "react-toastify";
@@ -20,21 +21,28 @@ export default function Bikes() {
     const queryClient = useQueryClient();
     const router = useRouter();
     const [search, setSearch] = useState("");
+    const debouncedSearch = useDebounce(search);
     const [modalOpen, setModalOpen] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [selectedBike, setSelectedBike] = useState<Bike | null>(null);
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
+    const [sortBy, setSortBy] = useState("createdAt");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+    useEffect(() => { setPage(1); }, [debouncedSearch]);
 
     const { data: bikesData, isLoading, error } = useQuery({
-        queryKey: ["bicycles", page, limit, search],
+        queryKey: ["bicycles", page, limit, debouncedSearch, sortBy, sortOrder],
         queryFn: async () => {
             const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-            if (search) params.set("search", search);
+            if (debouncedSearch) params.set("search", debouncedSearch);
+            if (sortBy) params.set("sortBy", sortBy);
+            if (sortOrder) params.set("sortOrder", sortOrder);
             const { data } = await api.get(`/bicycles?${params.toString()}`);
             return data;
         },
-    });
+        placeholderData: (prev: any) => prev,    });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: number) => {
@@ -57,25 +65,31 @@ export default function Bikes() {
     });
 
     const columns: ColumnDef<Bike>[] = [
-        { accessorKey: "brand", header: "Marca" },
-        { accessorKey: "model", header: "Modelo" },
+        { accessorKey: "brand", header: "Marca", enableSorting: true },
+        { accessorKey: "model", header: "Modelo", enableSorting: true },
         {
+            id: "client.name",
             accessorKey: "client.name",
             header: "Cliente",
-            cell: ({ row }) => row.original.client?.name || "Sin cliente"
+            enableSorting: true,
+            cell: ({ row }) => row.original.client?.name || "Sin cliente",
         },
         {
             accessorKey: "lastServiceDate",
             header: "Último Servicio",
-            cell: ({ row }) => row.original.lastServiceDate ? formatDate(row.original.lastServiceDate) : "Sin registro"
+            enableSorting: true,
+            cell: ({ row }) => row.original.lastServiceDate ? formatDate(row.original.lastServiceDate) : "Sin registro",
         },
         {
-            accessorKey: "services.length",
+            id: "services",
             header: "Servicios",
-            cell: ({ row }) => row.original.services?.length || 0
+            enableSorting: false,
+            cell: ({ row }) => row.original.services?.length || 0,
         },
         {
+            id: "actions",
             header: "Acciones",
+            enableSorting: false,
             cell: ({ row }) => (
                 <div className="flex justify-end gap-2">
                     <Button size="sm" variant="ghost" onClick={() => router.push(`/bikes/${row.original.id}`)}>
@@ -92,8 +106,7 @@ export default function Bikes() {
         },
     ];
 
-
-    if (isLoading) return <TableSkeleton />;
+    if (isLoading && !bikesData) return <TableSkeleton />;
     if (error) return <p>Error al cargar las bicicletas.</p>;
 
     return (
@@ -117,6 +130,10 @@ export default function Bikes() {
                 setLimit={setLimit}
                 total={bikesData?.totalItems}
                 totalPage={bikesData?.totalPages}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                sortOrder={sortOrder}
+                setSortOrder={setSortOrder}
             />
             {modalOpen && (
                 <BicycleModal

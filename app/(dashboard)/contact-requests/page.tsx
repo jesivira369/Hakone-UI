@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
@@ -20,6 +21,11 @@ export default function ContactRequestsPage() {
   const [limit, setLimit] = useState(10);
   const [status, setStatus] = useState<ContactRequestStatus | "ALL">("NEW");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -28,23 +34,18 @@ export default function ContactRequestsPage() {
   }, [user, isLoading, router]);
 
   const { data } = useQuery<ContactRequestsQuery>({
-    queryKey: ["contact-requests", page, limit, status, search],
+    queryKey: ["contact-requests", page, limit, status, debouncedSearch, sortBy, sortOrder],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (status !== "ALL") params.set("status", status);
-      // Búsqueda simple por query param (futuro): por ahora filtramos en UI si hace falta.
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (sortBy) params.set("sortBy", sortBy);
+      if (sortOrder) params.set("sortOrder", sortOrder);
       const res = await api.get(`/contact-requests?${params.toString()}`);
-      const payload = res.data as ContactRequestsQuery;
-      if (!search) return payload;
-      const q = search.toLowerCase();
-      return {
-        ...payload,
-        data: payload.data.filter((r) =>
-          [r.name, r.shopName, r.email, r.phone].some((v) => String(v).toLowerCase().includes(q))
-        ),
-      };
+      return res.data as ContactRequestsQuery;
     },
     enabled: !!user && user.role === "SUPER_ADMIN",
+    placeholderData: (prev: ContactRequestsQuery | undefined) => prev,
   });
 
   const updateStatus = useMutation({
@@ -59,13 +60,14 @@ export default function ContactRequestsPage() {
 
   const columns: ColumnDef<ContactRequest>[] = useMemo(
     () => [
-      { accessorKey: "name", header: "Nombre" },
-      { accessorKey: "shopName", header: "Tienda" },
-      { accessorKey: "phone", header: "Teléfono" },
-      { accessorKey: "email", header: "Email" },
+      { accessorKey: "name", header: "Nombre", enableSorting: true },
+      { accessorKey: "shopName", header: "Tienda", enableSorting: true },
+      { accessorKey: "phone", header: "Teléfono", enableSorting: false },
+      { accessorKey: "email", header: "Email", enableSorting: true },
       {
         accessorKey: "status",
         header: "Estado",
+        enableSorting: true,
         cell: ({ row }) => {
           const r = row.original;
           return (
@@ -90,11 +92,13 @@ export default function ContactRequestsPage() {
       {
         accessorKey: "createdAt",
         header: "Fecha",
+        enableSorting: true,
         cell: ({ row }) => formatDate(row.original.createdAt),
       },
       {
         accessorKey: "message",
         header: "Comentario",
+        enableSorting: false,
         cell: ({ row }) => (
           <span className="line-clamp-2 max-w-[420px] text-sm text-muted-foreground">
             {row.original.message}
@@ -145,8 +149,11 @@ export default function ContactRequestsPage() {
         setLimit={setLimit}
         total={data?.totalItems ?? 0}
         totalPage={data?.totalPages ?? 0}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        sortOrder={sortOrder}
+        setSortOrder={setSortOrder}
       />
     </div>
   );
 }
-

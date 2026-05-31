@@ -8,7 +8,8 @@ import api from "@/lib/axiosInstance";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Trash } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Input } from "@/components/ui/input";
 import { Mechanic } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
@@ -18,21 +19,28 @@ import { TableSkeleton } from "@/components/ui/Skeleton/TableSkeleton";
 export default function Mechanics() {
     const queryClient = useQueryClient();
     const [search, setSearch] = useState("");
+    const debouncedSearch = useDebounce(search);
     const [modalOpen, setModalOpen] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | null>(null);
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
+    const [sortBy, setSortBy] = useState("createdAt");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+    useEffect(() => { setPage(1); }, [debouncedSearch]);
 
     const { data: mechanicsData, isLoading, error } = useQuery({
-        queryKey: ["mechanics", page, limit, search],
+        queryKey: ["mechanics", page, limit, debouncedSearch, sortBy, sortOrder],
         queryFn: async () => {
             const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-            if (search) params.set("search", search);
+            if (debouncedSearch) params.set("search", debouncedSearch);
+            if (sortBy) params.set("sortBy", sortBy);
+            if (sortOrder) params.set("sortOrder", sortOrder);
             const { data } = await api.get(`/mechanics?${params.toString()}`);
             return data;
         },
-    });
+        placeholderData: (prev: any) => prev,    });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: number) => {
@@ -55,14 +63,17 @@ export default function Mechanics() {
     });
 
     const columns: ColumnDef<Mechanic>[] = [
-        { accessorKey: "name", header: "Nombre" },
+        { accessorKey: "name", header: "Nombre", enableSorting: true },
         {
             accessorKey: "createdAt",
             header: "Fecha de Creación",
+            enableSorting: true,
             cell: ({ row }) => formatDate(row.original.createdAt),
         },
         {
+            id: "actions",
             header: "Acciones",
+            enableSorting: false,
             cell: ({ row }) => (
                 <div className="flex justify-end gap-2">
                     <Button size="sm" variant="outline" onClick={() => { setSelectedMechanic(row.original); setModalOpen(true); }}>
@@ -76,7 +87,7 @@ export default function Mechanics() {
         },
     ];
 
-    if (isLoading) return <TableSkeleton />;
+    if (isLoading && !mechanicsData) return <TableSkeleton />;
     if (error) return <p>Error al cargar los mecánicos.</p>;
 
     return (
@@ -100,6 +111,10 @@ export default function Mechanics() {
                 setLimit={setLimit}
                 total={mechanicsData?.totalItems}
                 totalPage={mechanicsData?.totalPages}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                sortOrder={sortOrder}
+                setSortOrder={setSortOrder}
             />
             {modalOpen && (
                 <MechanicModal

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/useDebounce";
 import { DataTable } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/button";
 import { ServiceModal } from "@/components/ui/ServiceModal";
@@ -21,21 +22,28 @@ export default function ServicesPage() {
     const queryClient = useQueryClient();
     const router = useRouter();
     const [search, setSearch] = useState("");
+    const debouncedSearch = useDebounce(search);
     const [modalOpen, setModalOpen] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
+    const [sortBy, setSortBy] = useState("createdAt");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+    useEffect(() => { setPage(1); }, [debouncedSearch]);
 
     const { data: servicesData, isLoading, error } = useQuery({
-        queryKey: ["services", page, limit, search],
+        queryKey: ["services", page, limit, debouncedSearch, sortBy, sortOrder],
         queryFn: async () => {
             const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-            if (search) params.set("search", search);
+            if (debouncedSearch) params.set("search", debouncedSearch);
+            if (sortBy) params.set("sortBy", sortBy);
+            if (sortOrder) params.set("sortOrder", sortOrder);
             const { data } = await api.get(`/services?${params.toString()}`);
             return data;
         },
-    });
+        placeholderData: (prev: any) => prev,    });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: number) => {
@@ -58,9 +66,16 @@ export default function ServicesPage() {
     });
 
     const columns: ColumnDef<Service>[] = [
-        { accessorKey: "client.name", header: "Cliente" },
         {
+            id: "client.name",
+            accessorKey: "client.name",
+            header: "Cliente",
+            enableSorting: true,
+        },
+        {
+            id: "bicycle",
             header: "Bicicleta",
+            enableSorting: false,
             cell: ({ row }) => {
                 const bike = row.original.bicycle;
                 return (
@@ -73,6 +88,7 @@ export default function ServicesPage() {
         {
             accessorKey: "description",
             header: "Descripción",
+            enableSorting: false,
             cell: ({ row }) => {
                 const description = row.original.description;
                 return (
@@ -83,26 +99,50 @@ export default function ServicesPage() {
             },
         },
         {
+            id: "parts",
             header: "Repuestos",
+            enableSorting: false,
             cell: ({ row }) => (
                 <div>{row.original.parts?.length ?? 0}</div>
             ),
         },
-        { accessorKey: "price", header: "Precio" },
+        {
+            accessorKey: "price",
+            header: "Precio",
+            enableSorting: true,
+        },
         {
             accessorKey: "status",
             header: "Estado",
+            enableSorting: true,
             cell: ({ row }) => (
                 <span>
                     {ServiceStatusLabels[row.original.status as ServiceStatus] || "Desconocido"}
                 </span>
             ),
         },
-        { accessorKey: "mechanic.name", header: "Mecánico" },
-        { accessorKey: "createdAt", header: "Fecha de creación", cell: ({ row }) => formatDate(row.original.createdAt ?? ""), },
-        { accessorKey: "completedAt", header: "Fecha de finalizacion", cell: ({ row }) => row.original.completedAt ? formatDate(row.original.completedAt) : "—", },
         {
+            id: "mechanic.name",
+            accessorKey: "mechanic.name",
+            header: "Mecánico",
+            enableSorting: true,
+        },
+        {
+            accessorKey: "createdAt",
+            header: "Fecha de creación",
+            enableSorting: true,
+            cell: ({ row }) => formatDate(row.original.createdAt ?? ""),
+        },
+        {
+            accessorKey: "completedAt",
+            header: "Fecha de finalización",
+            enableSorting: true,
+            cell: ({ row }) => row.original.completedAt ? formatDate(row.original.completedAt) : "—",
+        },
+        {
+            id: "actions",
             header: "Acciones",
+            enableSorting: false,
             cell: ({ row }) => (
                 <div className="flex justify-end gap-2">
                     <Button size="sm" variant="ghost" onClick={() => router.push(`/services/${row.original.id}`)}>
@@ -119,7 +159,7 @@ export default function ServicesPage() {
         },
     ];
 
-    if (isLoading) return <TableSkeleton />;
+    if (isLoading && !servicesData) return <TableSkeleton />;
     if (error) return <p>Error al cargar los servicios.</p>;
 
     return (
@@ -143,6 +183,10 @@ export default function ServicesPage() {
                 setLimit={setLimit}
                 total={servicesData?.totalItems}
                 totalPage={servicesData?.totalPages}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                sortOrder={sortOrder}
+                setSortOrder={setSortOrder}
             />
             {modalOpen && (
                 <ServiceModal

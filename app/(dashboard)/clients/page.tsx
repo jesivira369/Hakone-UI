@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/useDebounce";
 import api from "@/lib/axiosInstance";
 import { Client } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -20,21 +21,28 @@ export default function ClientsPage() {
     const queryClient = useQueryClient();
     const router = useRouter();
     const [search, setSearch] = useState("");
+    const debouncedSearch = useDebounce(search);
     const [modalOpen, setModalOpen] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
+    const [sortBy, setSortBy] = useState("createdAt");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+    useEffect(() => { setPage(1); }, [debouncedSearch]);
 
     const { data: clientsData, isLoading, error } = useQuery({
-        queryKey: ["clients", page, limit, search],
+        queryKey: ["clients", page, limit, debouncedSearch, sortBy, sortOrder],
         queryFn: async () => {
             const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-            if (search) params.set("search", search);
+            if (debouncedSearch) params.set("search", debouncedSearch);
+            if (sortBy) params.set("sortBy", sortBy);
+            if (sortOrder) params.set("sortOrder", sortOrder);
             const { data } = await api.get(`/clients?${params.toString()}`);
             return data;
         },
-    });
+        placeholderData: (prev: any) => prev,    });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: number) => {
@@ -57,13 +65,20 @@ export default function ClientsPage() {
     });
 
     const columns: ColumnDef<Client>[] = [
-        { accessorKey: "name", header: "Nombre" },
-        { accessorKey: "email", header: "Email" },
-        { accessorKey: "phone", header: "Teléfono" },
-        { accessorKey: "bicycles.length", header: "Bicicletas" },
-        { accessorKey: "createdAt", header: "Fecha de Creación", cell: ({ row }) => formatDate(row.original.createdAt), },
+        { accessorKey: "name", header: "Nombre", enableSorting: true },
+        { accessorKey: "email", header: "Email", enableSorting: true },
+        { accessorKey: "phone", header: "Teléfono", enableSorting: false },
+        { accessorKey: "bicycles.length", header: "Bicicletas", enableSorting: false },
         {
+            accessorKey: "createdAt",
+            header: "Fecha de Creación",
+            enableSorting: true,
+            cell: ({ row }) => formatDate(row.original.createdAt),
+        },
+        {
+            id: "actions",
             header: "Acciones",
+            enableSorting: false,
             cell: ({ row }) => (
                 <div className="flex justify-end gap-2">
                     <Button size="sm" variant="ghost" onClick={() => router.push(`/clients/${row.original.id}`)}>
@@ -80,7 +95,7 @@ export default function ClientsPage() {
         },
     ];
 
-    if (isLoading) return <TableSkeleton />;
+    if (isLoading && !clientsData) return <TableSkeleton />;
     if (error) return <p>Error al cargar los clientes.</p>;
 
     return (
@@ -104,6 +119,10 @@ export default function ClientsPage() {
                 setLimit={setLimit}
                 total={clientsData?.totalItems}
                 totalPage={clientsData?.totalPages}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                sortOrder={sortOrder}
+                setSortOrder={setSortOrder}
             />
             {modalOpen && (
                 <ClientModal

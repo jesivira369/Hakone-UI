@@ -10,6 +10,7 @@ import {
 import { Table, TableHeader, TableBody, TableRow, TableCell } from "@/components/ui/Table";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface DataTableProps<TData> {
     columns: ColumnDef<TData>[];
@@ -20,9 +21,26 @@ interface DataTableProps<TData> {
     setLimit: (limit: number) => void;
     total: number;
     totalPage: number;
+    sortBy?: string;
+    setSortBy?: (col: string) => void;
+    sortOrder?: "asc" | "desc";
+    setSortOrder?: (order: "asc" | "desc") => void;
 }
 
-export function DataTable<TData>({ columns, data, page, setPage, limit, setLimit, total, totalPage }: DataTableProps<TData>) {
+export function DataTable<TData>({
+    columns,
+    data,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    total,
+    totalPage,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+}: DataTableProps<TData>) {
     const table = useReactTable({
         data,
         columns,
@@ -32,6 +50,17 @@ export function DataTable<TData>({ columns, data, page, setPage, limit, setLimit
         pageCount: totalPage,
     });
 
+    const handleSort = (columnId: string) => {
+        if (!setSortBy || !setSortOrder) return;
+        if (sortBy === columnId) {
+            setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+        } else {
+            setSortBy(columnId);
+            setSortOrder("asc");
+        }
+        setPage(1);
+    };
+
     return (
         <div className="w-full min-w-0">
             <div className="overflow-x-auto rounded-lg border">
@@ -39,11 +68,31 @@ export function DataTable<TData>({ columns, data, page, setPage, limit, setLimit
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header, index) => (
-                                    <TableCell key={header.id} className={`font-semibold ${index === headerGroup.headers.length - 1 ? 'text-right' : ''}`}>
-                                        {flexRender(header.column.columnDef.header, header.getContext())}
-                                    </TableCell>
-                                ))}
+                                {headerGroup.headers.map((header, index) => {
+                                    const isLast = index === headerGroup.headers.length - 1;
+                                    const canSort = !!setSortBy && header.column.getCanSort();
+                                    const isSorted = sortBy === header.column.id;
+                                    return (
+                                        <TableCell
+                                            key={header.id}
+                                            className={`font-semibold ${isLast ? "text-right" : ""} ${canSort ? "cursor-pointer select-none" : ""}`}
+                                            onClick={canSort ? () => handleSort(header.column.id) : undefined}
+                                        >
+                                            <div className={`flex items-center gap-1 ${isLast ? "justify-end" : ""}`}>
+                                                {flexRender(header.column.columnDef.header, header.getContext())}
+                                                {canSort && (
+                                                    isSorted ? (
+                                                        sortOrder === "asc"
+                                                            ? <ArrowUp size={14} />
+                                                            : <ArrowDown size={14} />
+                                                    ) : (
+                                                        <ArrowUpDown size={14} className="text-muted-foreground" />
+                                                    )
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                    );
+                                })}
                             </TableRow>
                         ))}
                     </TableHeader>
@@ -51,7 +100,7 @@ export function DataTable<TData>({ columns, data, page, setPage, limit, setLimit
                         {table.getRowModel().rows.map((row) => (
                             <TableRow key={row.id}>
                                 {row.getVisibleCells().map((cell, index) => (
-                                    <TableCell key={cell.id} className={`${index === row.getVisibleCells().length - 1 ? 'text-right' : ''}`}>
+                                    <TableCell key={cell.id} className={`${index === row.getVisibleCells().length - 1 ? "text-right" : ""}`}>
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                     </TableCell>
                                 ))}
@@ -63,7 +112,7 @@ export function DataTable<TData>({ columns, data, page, setPage, limit, setLimit
             <div className="mt-4 flex w-full flex-col gap-4 border-t border-border p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm text-muted-foreground">Resultados por página:</p>
-                    <Select value={limit.toString()} onValueChange={(val) => setLimit(Number(val))}>
+                    <Select value={limit.toString()} onValueChange={(val) => { setLimit(Number(val)); setPage(1); }}>
                         <SelectTrigger className="w-20">
                             <SelectValue placeholder="Selecciona" />
                         </SelectTrigger>

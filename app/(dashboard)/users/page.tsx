@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
@@ -19,7 +20,12 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
   const [createOpen, setCreateOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -28,24 +34,28 @@ export default function UsersPage() {
   }, [user, isLoading, router]);
 
   const { data } = useQuery<UsersQuery>({
-    queryKey: ["users", page, limit, search],
+    queryKey: ["users", page, limit, debouncedSearch, sortBy, sortOrder],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (sortBy) params.set("sortBy", sortBy);
+      if (sortOrder) params.set("sortOrder", sortOrder);
       const res = await api.get(`/users?${params.toString()}`);
       return res.data as UsersQuery;
     },
     enabled: !!user && user.role === "SUPER_ADMIN",
+    placeholderData: (prev: UsersQuery | undefined) => prev,
   });
 
   const columns: ColumnDef<AppUser>[] = useMemo(
     () => [
-      { accessorKey: "email", header: "Email" },
-      { accessorKey: "shopName", header: "Tienda" },
-      { accessorKey: "role", header: "Rol" },
+      { accessorKey: "email", header: "Email", enableSorting: true },
+      { accessorKey: "shopName", header: "Tienda", enableSorting: true },
+      { accessorKey: "role", header: "Rol", enableSorting: true },
       {
         accessorKey: "createdAt",
         header: "Creado",
+        enableSorting: true,
         cell: ({ row }) => formatDate(row.original.createdAt),
       },
     ],
@@ -83,10 +93,13 @@ export default function UsersPage() {
         setLimit={setLimit}
         total={data?.totalItems ?? 0}
         totalPage={data?.totalPages ?? 0}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        sortOrder={sortOrder}
+        setSortOrder={setSortOrder}
       />
 
       {createOpen && <UserModal isOpen={createOpen} onClose={() => setCreateOpen(false)} />}
     </div>
   );
 }
-

@@ -1,3 +1,5 @@
+export type SubscriptionStatus = "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED";
+
 export interface AuthError {
   message: string;
 }
@@ -9,7 +11,11 @@ export interface AuthData {
 }
 
 export interface AuthUser {
+  id: number;
   email: string;
   role: "ADMIN" | "SUPER_ADMIN";
-  shopName?: string;
+  shopName: string;
+  subscriptionStatus: SubscriptionStatus;
+  trialEndsAt: string;
+  subscriptionEndsAt: string | null;
 }

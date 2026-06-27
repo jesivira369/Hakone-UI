@@ -1,3 +1,5 @@
+import { SubscriptionStatus } from "./auth";
+
 export type UserRole = "ADMIN" | "SUPER_ADMIN";
 
 export interface AppUser {
@@ -5,6 +7,9 @@ export interface AppUser {
   email: string;
   shopName: string;
   role: UserRole;
+  subscriptionStatus: SubscriptionStatus;
+  trialEndsAt: string;
+  subscriptionEndsAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

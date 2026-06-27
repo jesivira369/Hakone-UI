@@ -6,6 +6,8 @@ import { Header } from "@/components/ui/Header";
 import { SidebarDesktop } from "@/components/ui/SidebarDesktop";
 import { SidebarMobile } from "@/components/ui/SidebarMobile";
 import { useAuth } from "@/context/auth-provider";
+import { SubscriptionBanner } from "@/components/ui/SubscriptionBanner";
+import { SubscriptionExpiredScreen } from "@/components/ui/SubscriptionExpiredScreen";
 
 export default function DashboardLayout({
   children,
@@ -29,6 +31,18 @@ export default function DashboardLayout({
 
   if (isLoading || !user) return null;
 
+  const isExpired = user.role === "ADMIN" && user.subscriptionStatus === "EXPIRED";
+  const isGrace = user.role === "ADMIN" && user.subscriptionStatus === "GRACE";
+
+  const effectiveExpiry = user.subscriptionEndsAt ?? user.trialEndsAt;
+  const graceDaysLeft = isGrace
+    ? Math.max(0, 7 - Math.floor((Date.now() - new Date(effectiveExpiry).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  if (isExpired) {
+    return <SubscriptionExpiredScreen />;
+  }
+
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background md:flex-row">
       <SidebarDesktop
@@ -41,6 +55,7 @@ export default function DashboardLayout({
       />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
+        {isGrace && <SubscriptionBanner graceDaysLeft={graceDaysLeft} />}
         <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-4 md:p-6 xl:p-8">
           {children}
         </main>

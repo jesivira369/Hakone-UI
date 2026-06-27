@@ -26,6 +26,9 @@ import { formatCurrency } from "@/lib/utils";
 import { Bike, BikeQuery, Client, ClientQuery, Mechanic, MechanicQuery, Service, ServicePartInput } from "@/lib/types";
 import { Plus, Trash } from "lucide-react";
 import { toast } from "react-toastify";
+import { PhoneInputE164 } from "@/components/ui/PhoneInputE164";
+import { Switch } from "@/components/ui/switch";
+import { ServiceCategory, ServiceCategoryLabels } from "@/lib/enums";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -48,14 +51,16 @@ const serviceSchema = z.object({
     price: z.number().min(0.01, "El precio debe ser mayor a 0"),
     scheduledAt: z.string().min(1, "La fecha de programación es requerida"),
     deliveryAt: z.string().min(1, "La fecha de entrega es requerida"),
+    category: z.nativeEnum(ServiceCategory),
+    isReminderActive: z.boolean(),
 });
 
 const newClientSchema = z.object({
     name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
     phone: z
         .string()
-        .min(6, "El teléfono debe tener al menos 6 caracteres")
-        .regex(/^[+\d][\d\s\-().+]*$/, "Solo se permiten números"),
+        .min(8, "El teléfono debe tener al menos 8 caracteres")
+        .regex(/^\+[1-9]\d{6,14}$/, "Debe estar en formato internacional (E.164)"),
     email: z.string().email("Debe ser un email válido"),
 });
 
@@ -118,6 +123,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         handleSubmit,
         setValue,
         reset,
+        watch,
         formState: { errors },
     } = useForm({
         resolver: zodResolver(serviceSchema),
@@ -126,8 +132,20 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             price: 0,
             scheduledAt: "",
             deliveryAt: "",
+            category: ServiceCategory.REPARACION_PUNTUAL,
+            isReminderActive: false,
         },
     });
+
+    const watchedCategory = (watch("category") as ServiceCategory | undefined) ?? ServiceCategory.REPARACION_PUNTUAL;
+    const watchedReminder = Boolean(watch("isReminderActive"));
+
+    const reminderHint =
+        watchedCategory === ServiceCategory.MANTENIMIENTO_INTEGRAL
+            ? "Se enviará un aviso en 6 meses (desde la fecha de finalización)."
+            : watchedCategory === ServiceCategory.TRANSMISION_FRENOS
+                ? "Se enviará un aviso en 3 meses (desde la fecha de finalización)."
+                : null;
 
     // ── Infinite queries ────────────────────────────────────────────────────
 
@@ -138,7 +156,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     } = useInfiniteQuery<BikeQuery>({
         queryKey: ["bicycles"],
         queryFn: async ({ pageParam = 1 }) => {
-            const { data } = await api.get(`/bicycles?page=${pageParam}&limit=10`);
+            const { data } = await api.get(`/bicycles?page=${pageParam}&limit=50`);
             return data;
         },
         getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
@@ -152,7 +170,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     } = useInfiniteQuery<MechanicQuery>({
         queryKey: ["mechanics"],
         queryFn: async ({ pageParam = 1 }) => {
-            const { data } = await api.get(`/mechanics?page=${pageParam}&limit=10`);
+            const { data } = await api.get(`/mechanics?page=${pageParam}&limit=50`);
             return data;
         },
         getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
@@ -166,7 +184,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     } = useInfiniteQuery<ClientQuery>({
         queryKey: ["clients"],
         queryFn: async ({ pageParam = 1 }) => {
-            const { data } = await api.get(`/clients?page=${pageParam}&limit=10`);
+            const { data } = await api.get(`/clients?page=${pageParam}&limit=50`);
             return data;
         },
         getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
@@ -195,6 +213,8 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             setSelectedMechanicId(service.mechanicId);
             setBikeMode("existing");
             setMechanicMode("existing");
+            setValue("category", service.category ?? ServiceCategory.REPARACION_PUNTUAL);
+            setValue("isReminderActive", Boolean(service.isReminderActive));
             setParts(
                 (service.parts ?? []).map((p) => ({
                     name: p.name,
@@ -208,6 +228,8 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             const in2Days = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
             setValue("scheduledAt", toDateTimeLocal(now.toISOString()));
             setValue("deliveryAt", toDateTimeLocal(in2Days.toISOString()));
+            setValue("category", ServiceCategory.REPARACION_PUNTUAL);
+            setValue("isReminderActive", false);
             setBikeMode("existing");
             setMechanicMode("existing");
             setClientModeForBike("existing");
@@ -221,6 +243,24 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             setPriceInput("");
         }
     }, [service, setValue, reset]);
+
+    // ── Recordatorios: auto-toggle inteligente ─────────────────────────────
+    useEffect(() => {
+        if (watchedCategory === ServiceCategory.MANTENIMIENTO_INTEGRAL) {
+            setValue("isReminderActive", true, { shouldDirty: true, shouldValidate: true });
+        }
+
+        if (
+            watchedCategory === ServiceCategory.ARMADO ||
+            watchedCategory === ServiceCategory.REPARACION_PUNTUAL
+        ) {
+            setValue("isReminderActive", false, { shouldDirty: true, shouldValidate: true });
+        }
+
+        if (watchedCategory === ServiceCategory.TRANSMISION_FRENOS) {
+            setValue("isReminderActive", true, { shouldDirty: true, shouldValidate: true });
+        }
+    }, [watchedCategory, setValue]);
 
     // ── Parts helpers ───────────────────────────────────────────────────────
 
@@ -334,6 +374,8 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                 price: parseFloat(formData.price.toString()),
                 scheduledAt: toISOString(formData.scheduledAt),
                 deliveryAt: toISOString(formData.deliveryAt),
+                category: formData.category,
+                isReminderActive: formData.isReminderActive,
                 bicycleId: resolvedBikeId,
                 clientId: resolvedClientId,
                 mechanicId: resolvedMechanicId,
@@ -402,7 +444,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                     onScroll={(e) => {
                                         const el = e.currentTarget;
                                         if (
-                                            el.scrollHeight - el.scrollTop === el.clientHeight &&
+                                            el.scrollHeight - el.scrollTop - el.clientHeight <= 1 &&
                                             hasNextBike
                                         )
                                             fetchNextBike();
@@ -536,15 +578,14 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-medium mb-1">Teléfono</label>
-                                                <Input
+                                                <PhoneInputE164
                                                     value={newClient.phone}
-                                                    onChange={(e) =>
+                                                    onChange={(next) =>
                                                         setNewClient((c) => ({
                                                             ...c,
-                                                            phone: e.target.value.replace(/[^\d\s+\-().]/g, ""),
+                                                            phone: next,
                                                         }))
                                                     }
-                                                    placeholder="1234567"
                                                 />
                                                 {clientErrors.phone && (
                                                     <p className="text-red-500 text-xs mt-1">
@@ -600,7 +641,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                     onScroll={(e) => {
                                         const el = e.currentTarget;
                                         if (
-                                            el.scrollHeight - el.scrollTop === el.clientHeight &&
+                                            el.scrollHeight - el.scrollTop - el.clientHeight <= 1 &&
                                             hasNextMechanic
                                         )
                                             fetchNextMechanic();
@@ -645,6 +686,58 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                 </div>
                             </div>
                         )}
+                    </div>
+
+                    {/* ── Categoría + Recordatorio ── */}
+                    <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium">Categoría del servicio</label>
+                            <Select
+                                value={watchedCategory}
+                                onValueChange={(val) =>
+                                    setValue("category", val as ServiceCategory, {
+                                        shouldDirty: true,
+                                        shouldValidate: true,
+                                    })
+                                }
+                            >
+                                <SelectTrigger className="bg-background">
+                                    <SelectValue placeholder="Selecciona una categoría" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Object.values(ServiceCategory).map((c) => (
+                                        <SelectItem key={c} value={c}>
+                                            {ServiceCategoryLabels[c]}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {errors.category && (
+                                <p className="text-red-500 text-sm">{errors.category.message as string}</p>
+                            )}
+                        </div>
+
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="text-sm font-medium">Activar recordatorio</div>
+                                <div className="text-xs text-muted-foreground">
+                                    {reminderHint ?? "Esta categoría no genera recordatorios automáticos."}
+                                </div>
+                            </div>
+                            <Switch
+                                checked={watchedReminder}
+                                onCheckedChange={(checked) =>
+                                    setValue("isReminderActive", checked, {
+                                        shouldDirty: true,
+                                        shouldValidate: true,
+                                    })
+                                }
+                                disabled={
+                                    watchedCategory === ServiceCategory.ARMADO ||
+                                    watchedCategory === ServiceCategory.REPARACION_PUNTUAL
+                                }
+                            />
+                        </div>
                     </div>
 
                     {/* ── Fechas ── */}

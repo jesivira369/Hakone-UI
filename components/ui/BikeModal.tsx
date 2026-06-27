@@ -12,6 +12,7 @@ import api from "@/lib/axiosInstance";
 import { Client, Bike, ClientQuery } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "react-toastify";
+import { PhoneInputE164 } from "@/components/ui/PhoneInputE164";
 
 const bicycleSchema = z.object({
     brand: z.string().min(3, "La marca debe tener al menos 3 caracteres"),
@@ -23,8 +24,8 @@ const newClientSchema = z.object({
     name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
     phone: z
         .string()
-        .min(6, "El teléfono debe tener al menos 6 caracteres")
-        .regex(/^[+\d][\d\s\-().+]*$/, "Solo se permiten números"),
+        .min(8, "El teléfono debe tener al menos 8 caracteres")
+        .regex(/^\+[1-9]\d{6,14}$/, "Debe estar en formato internacional (E.164)"),
     email: z.string().email("Debe ser un email válido"),
 });
 
@@ -47,8 +48,6 @@ interface BicycleModalProps {
 export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
     const queryClient = useQueryClient();
     const [isLoading, setIsLoading] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [clientPage, setClientPage] = useState(1);
     const [clientMode, setClientMode] = useState<EntityMode>("existing");
     const [newClient, setNewClient] = useState({ name: "", phone: "", email: "" });
     const [clientErrors, setClientErrors] = useState<InlineClientErrors>({});
@@ -76,10 +75,10 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
     } = useInfiniteQuery<ClientQuery>({
         queryKey: ["clients"],
         queryFn: async ({ pageParam = 1 }) => {
-            const { data } = await api.get(`/clients?page=${pageParam}&limit=10`);
+            const { data } = await api.get(`/clients?page=${pageParam}&limit=50`);
             return data;
         },
-        getNextPageParam: (lastPage) => (lastPage.data.length === 10 ? clientPage + 1 : undefined),
+        getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
         initialPageParam: 1,
     });
 
@@ -200,8 +199,7 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
                                     <SelectContent
                                         onScroll={(e) => {
                                             const bottom =
-                                                e.currentTarget.scrollHeight - e.currentTarget.scrollTop ===
-                                                e.currentTarget.clientHeight;
+                                                e.currentTarget.scrollHeight - e.currentTarget.scrollTop - e.currentTarget.clientHeight <= 1;
                                             if (bottom && hasNextPage) fetchNextPage();
                                         }}
                                     >
@@ -250,15 +248,9 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium mb-1">Teléfono</label>
-                                    <Input
+                                    <PhoneInputE164
                                         value={newClient.phone}
-                                        onChange={(e) =>
-                                            setNewClient((c) => ({
-                                                ...c,
-                                                phone: e.target.value.replace(/[^\d\s+\-().]/g, ""),
-                                            }))
-                                        }
-                                        placeholder="1234567"
+                                        onChange={(next) => setNewClient((c) => ({ ...c, phone: next }))}
                                     />
                                     {clientErrors.phone && <p className="text-red-500 text-xs mt-1">{clientErrors.phone}</p>}
                                 </div>

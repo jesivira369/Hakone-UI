@@ -42,7 +42,7 @@ export default function Bikes() {
             const { data } = await api.get(`/bicycles?${params.toString()}`);
             return data;
         },
-        placeholderData: (prev: any) => prev,    });
+        placeholderData: (prev: unknown) => prev,    });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: number) => {

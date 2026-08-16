@@ -59,6 +59,37 @@ export default function LandingPage() {
     defaultValues: { name: "", shopName: "", phone: "", email: "", message: "" },
   });
 
+  const [pricing, setPricing] = React.useState<{ label: string; suffix: string }>({
+    label: "$20",
+    suffix: "/mes",
+  });
+
+  React.useEffect(() => {
+    // Heurística rápida por zona horaria del navegador (offline, instantánea)
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz && tz.includes("Argentina")) {
+        setPricing({ label: "$30.000 ARS", suffix: "/mes" });
+      }
+    } catch {
+      // noop
+    }
+
+    // Confirmación por geolocalización de IP (best-effort, no bloqueante)
+    fetch("https://ipapi.co/json/")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.country_code === "AR") {
+          setPricing({ label: "$30.000 ARS", suffix: "/mes" });
+        } else if (data?.country_code) {
+          setPricing({ label: "$20", suffix: "/mes" });
+        }
+      })
+      .catch(() => {
+        // Sin conexión al servicio de geolocalización: se mantiene la heurística de zona horaria
+      });
+  }, []);
+
   const onSubmitContact = async (data: ContactForm) => {
     try {
       await api.post("/contact-requests", data);
@@ -379,8 +410,8 @@ export default function LandingPage() {
 
               <div className="text-lg font-bold text-primary">Plan Único</div>
               <div className="mt-4 flex items-baseline justify-center gap-2 text-center md:justify-start md:text-left">
-                <span className="text-4xl font-bold">$20</span>
-                <span className="text-sm text-muted-foreground">/mes</span>
+                <span className="text-4xl font-bold">{pricing.label}</span>
+                <span className="text-sm text-muted-foreground">{pricing.suffix}</span>
               </div>
 
               <ul className="mt-6 grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">

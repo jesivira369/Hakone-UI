@@ -43,7 +43,7 @@ export default function ServicesPage() {
             const { data } = await api.get(`/services?${params.toString()}`);
             return data;
         },
-        placeholderData: (prev: any) => prev,    });
+        placeholderData: (prev: unknown) => prev,    });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: number) => {

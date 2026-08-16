@@ -66,6 +66,20 @@ function ReminderContactButton({ serviceId }: { serviceId: number }) {
     );
 }
 
+/**
+ * Los filtros de fecha son días del calendario del taller, no instantes UTC.
+ * Se manda el offset del browser para que el backend recorte el rango en la
+ * zona horaria correcta (en Argentina, sin esto, los cierres de la tarde caían
+ * en el día siguiente).
+ */
+function buildStatsQuery(from: string, to: string, extra: Record<string, string> = {}): string {
+    const params = new URLSearchParams(extra);
+    if (from) params.set("dateFrom", from);
+    if (to) params.set("dateTo", to);
+    params.set("tzOffset", String(new Date().getTimezoneOffset()));
+    return `?${params.toString()}`;
+}
+
 export default function DashboardOverview() {
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
@@ -74,9 +88,11 @@ export default function DashboardOverview() {
     const [appliedTo, setAppliedTo] = useState("");
 
     const { data: overview, isLoading: overviewLoading } = useQuery<StatsOverview>({
-        queryKey: ["stats-overview"],
+        // Las tarjetas comparten el filtro con los gráficos; si no, arriba se ve
+        // el histórico y abajo el período, y parece que los números no cierran.
+        queryKey: ["stats-overview", appliedFrom, appliedTo],
         queryFn: async () => {
-            const { data } = await api.get("/statistics/overview");
+            const { data } = await api.get(`/statistics/overview${buildStatsQuery(appliedFrom, appliedTo)}`);
             return data;
         },
     });
@@ -84,11 +100,7 @@ export default function DashboardOverview() {
     const { data: revenue, isLoading: revenueLoading } = useQuery<RevenueStats>({
         queryKey: ["stats-revenue", appliedFrom, appliedTo],
         queryFn: async () => {
-            const params = new URLSearchParams();
-            if (appliedFrom) params.set("dateFrom", appliedFrom);
-            if (appliedTo) params.set("dateTo", appliedTo);
-            const query = params.toString() ? `?${params.toString()}` : "";
-            const { data } = await api.get(`/statistics/revenue${query}`);
+            const { data } = await api.get(`/statistics/revenue${buildStatsQuery(appliedFrom, appliedTo)}`);
             return data;
         },
     });
@@ -96,11 +108,7 @@ export default function DashboardOverview() {
     const { data: byStatus, isLoading: statusLoading } = useQuery<ServicesByStatus>({
         queryKey: ["stats-by-status", appliedFrom, appliedTo],
         queryFn: async () => {
-            const params = new URLSearchParams();
-            if (appliedFrom) params.set("dateFrom", appliedFrom);
-            if (appliedTo) params.set("dateTo", appliedTo);
-            const query = params.toString() ? `?${params.toString()}` : "";
-            const { data } = await api.get(`/statistics/services-by-status${query}`);
+            const { data } = await api.get(`/statistics/services-by-status${buildStatsQuery(appliedFrom, appliedTo)}`);
             return data;
         },
     });
@@ -108,10 +116,9 @@ export default function DashboardOverview() {
     const { data: topClients, isLoading: topClientsLoading } = useQuery<TopClientItem[]>({
         queryKey: ["stats-top-clients", appliedFrom, appliedTo],
         queryFn: async () => {
-            const params = new URLSearchParams({ limit: "5" });
-            if (appliedFrom) params.set("dateFrom", appliedFrom);
-            if (appliedTo) params.set("dateTo", appliedTo);
-            const { data } = await api.get(`/statistics/top-clients?${params.toString()}`);
+            const { data } = await api.get(
+                `/statistics/top-clients${buildStatsQuery(appliedFrom, appliedTo, { limit: "5" })}`,
+            );
             return data;
         },
     });
@@ -139,11 +146,7 @@ export default function DashboardOverview() {
 
     const handleExport = async () => {
         try {
-            const params = new URLSearchParams();
-            if (appliedFrom) params.set("dateFrom", appliedFrom);
-            if (appliedTo) params.set("dateTo", appliedTo);
-            const query = params.toString() ? `?${params.toString()}` : "";
-            const response = await api.get(`/statistics/export${query}`, {
+            const response = await api.get(`/statistics/export${buildStatsQuery(appliedFrom, appliedTo)}`, {
                 responseType: "blob",
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));

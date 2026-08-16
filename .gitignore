@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...menos la plantilla, que no tiene secretos y es lo que necesita
+# cualquiera que clone el repo para poder levantarlo.
+!.env.example
 
 # vercel
 .vercel

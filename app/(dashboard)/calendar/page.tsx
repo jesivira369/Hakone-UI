@@ -79,9 +79,22 @@ export default function CalendarPage() {
     const month = viewDate.getMonth();
 
     const { data: servicesData, isLoading } = useQuery({
-        queryKey: ["services-calendar", year, month],
+        queryKey: ["services-calendar", year, month, dateMode],
         queryFn: async () => {
-            const { data } = await api.get("/services?page=1&limit=500");
+            // Pedimos solo el mes visible: traer las últimas N filas y recortar en
+            // el browser dejaba los meses viejos vacíos al crecer el historial.
+            const from = new Date(year, month, 1);
+            const to = new Date(year, month + 1, 0, 23, 59, 59, 999);
+            const prefix = dateMode === "scheduled" ? "scheduled" : "delivery";
+
+            const params = new URLSearchParams({
+                page: "1",
+                limit: "100",
+                [`${prefix}From`]: from.toISOString(),
+                [`${prefix}To`]: to.toISOString(),
+            });
+
+            const { data } = await api.get(`/services?${params.toString()}`);
             return data as { data: Service[] };
         },
     });

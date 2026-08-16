@@ -17,7 +17,9 @@ export function middleware(req: NextRequest) {
     path.startsWith("/clients") ||
     path.startsWith("/bikes") ||
     path.startsWith("/services") ||
-    path.startsWith("/mechanics");
+    path.startsWith("/mechanics") ||
+    path.startsWith("/admin") ||
+    path.startsWith("/cuenta");
 
   if (!token && isProtectedRoute) {
     return NextResponse.redirect(new URL("/login", req.url));
@@ -35,5 +37,7 @@ export const config = {
     "/bikes/:path*",
     "/services/:path*",
     "/mechanics/:path*",
+    "/admin/:path*",
+    "/cuenta/:path*",
   ],
 };

@@ -840,7 +840,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
 
                     {/* ── Precio ── */}
                     <div>
-                        <label className="block text-sm font-medium">Precio del servicio</label>
+                        <label className="block text-sm font-medium">Mano de obra</label>
                         <Input
                             inputMode="decimal"
                             placeholder="Ej: 1200.50"
@@ -865,6 +865,21 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                         {errors.price && (
                             <p className="text-red-500 text-sm">{errors.price.message}</p>
                         )}
+                    </div>
+
+                    {/* Total efectivo: lo que se le cobra al cliente es mano de obra + repuestos. */}
+                    <div className="flex items-baseline justify-between rounded-lg border bg-muted/40 px-3 py-2">
+                        <span className="text-sm font-medium">Total a cobrar</span>
+                        <div className="text-right">
+                            <span className="text-lg font-bold">
+                                {formatCurrency((watch("price") || 0) + totalParts)}
+                            </span>
+                            {totalParts > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                    {formatCurrency(watch("price") || 0)} + {formatCurrency(totalParts)} en repuestos
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     <DialogFooter>

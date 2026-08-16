@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 
+// 4001 es el puerto de la API en desarrollo (ver PORT en Hakone-API/.env).
+// En producción NEXT_PUBLIC_API_URL siempre viene seteada.
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
 
 function buildTargetUrl(req: NextRequest, pathParts: string[]) {
@@ -40,9 +42,15 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }
   });
 
   const resHeaders = new Headers(upstream.headers);
-  // Asegura que Set-Cookie pase (login/logout).
-  const setCookie = upstream.headers.get("set-cookie");
-  if (setCookie) resHeaders.set("set-cookie", setCookie);
+
+  // Set-Cookie es el único header que puede repetirse legítimamente, y `get()`
+  // los devuelve unidos por coma —lo que corrompe cookies con `Expires`, que ya
+  // llevan una coma adentro—. `getSetCookie()` los devuelve separados.
+  const cookies = upstream.headers.getSetCookie?.() ?? [];
+  if (cookies.length > 0) {
+    resHeaders.delete("set-cookie");
+    for (const cookie of cookies) resHeaders.append("set-cookie", cookie);
+  }
 
   return new Response(upstream.body, {
     status: upstream.status,

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Service } from "@/lib/types";
 import { ServiceCategoryLabels, ServiceStatus } from "@/lib/enums";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, partsTotal as calcPartsTotal, serviceTotal } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit, MessageCircle } from "lucide-react";
@@ -36,6 +36,8 @@ export default function ServiceDetails() {
     }
 
     if (error || !service) return <p className="p-6 text-red-500">Error al cargar el servicio.</p>;
+
+    const partsTotal = calcPartsTotal(service);
 
     return (
         <div className="min-w-0 space-y-6">
@@ -85,8 +87,17 @@ export default function ServiceDetails() {
                     <ServiceStatusUpdater serviceId={service.id} currentStatus={service.status as ServiceStatus} />
 
                     <div>
-                        <p className="text-gray-500">Precio:</p>
+                        <p className="text-gray-500">Mano de obra:</p>
                         <p className="font-medium">{formatCurrency(service.price)}</p>
+                    </div>
+                    <div>
+                        <p className="text-gray-500">Total del servicio:</p>
+                        <p className="font-semibold">{formatCurrency(serviceTotal(service))}</p>
+                        {partsTotal > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                                {formatCurrency(service.price)} de mano de obra + {formatCurrency(partsTotal)} en repuestos
+                            </p>
+                        )}
                     </div>
                     <div>
                         <p className="text-gray-500">Categoría:</p>

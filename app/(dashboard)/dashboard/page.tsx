@@ -6,13 +6,14 @@ import api from "@/lib/axiosInstance";
 import { StatsCard } from "@/components/ui/StatsCards";
 import { CustomBarChart } from "@/components/ui/BarChart";
 import { CustomLineChart } from "@/components/ui/LineChart";
-import { Users, Bike, Wrench, DollarSign, Download } from "lucide-react";
+import { Users, Bike, Wrench, DollarSign, Download, TrendingDown, TrendingUp } from "lucide-react";
 import { DashboardSkeleton } from "@/components/ui/Skeleton/DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "react-toastify";
-import { StatsOverview, RevenueStats, ServicesByStatus, TopClientItem } from "@/lib/types";
+import { StatsOverview, RevenueStats, ExpenseStats, ServicesByStatus, TopClientItem } from "@/lib/types";
+import { ExpenseCategoryLabels } from "@/lib/enums";
 import Link from "next/link";
 
 type UpcomingService = {
@@ -105,6 +106,14 @@ export default function DashboardOverview() {
         },
     });
 
+    const { data: expenses, isLoading: expensesLoading } = useQuery<ExpenseStats>({
+        queryKey: ["stats-expenses", appliedFrom, appliedTo],
+        queryFn: async () => {
+            const { data } = await api.get(`/statistics/expenses${buildStatsQuery(appliedFrom, appliedTo)}`);
+            return data;
+        },
+    });
+
     const { data: byStatus, isLoading: statusLoading } = useQuery<ServicesByStatus>({
         queryKey: ["stats-by-status", appliedFrom, appliedTo],
         queryFn: async () => {
@@ -191,6 +200,18 @@ export default function DashboardOverview() {
             icon: <DollarSign />,
             link: "/dashboard",
         },
+        {
+            title: "Egresos Totales",
+            value: formatCurrency(overview?.totalExpenses ?? 0),
+            icon: <TrendingDown />,
+            link: "/gastos",
+        },
+        {
+            title: "Ingresos Netos",
+            value: formatCurrency(overview?.netIncome ?? 0),
+            icon: <TrendingUp />,
+            link: "/dashboard",
+        },
     ];
 
     // Agrupar puntos diarios por mes (YYYY-MM → nombre legible)
@@ -218,6 +239,13 @@ export default function DashboardOverview() {
               { name: "Completados", value: byStatus.COMPLETED ?? 0 },
               { name: "Cancelados", value: byStatus.CANCELED ?? 0 },
           ]
+        : [];
+
+    const expensesByCategoryChartData = expenses
+        ? Object.entries(expenses.byCategory).map(([key, value]) => ({
+              name: ExpenseCategoryLabels[key as keyof typeof ExpenseCategoryLabels] ?? key,
+              value,
+          }))
         : [];
 
     return (
@@ -277,6 +305,17 @@ export default function DashboardOverview() {
                         data={statusChartData}
                         title="Servicios por estado"
                         label="Cantidad"
+                    />
+                )}
+                {expensesLoading ? (
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">
+                        Cargando egresos...
+                    </div>
+                ) : (
+                    <CustomBarChart
+                        data={expensesByCategoryChartData}
+                        title="Egresos por categoría"
+                        label="Egresos"
                     />
                 )}
             </div>
@@ -448,7 +487,7 @@ export default function DashboardOverview() {
                                         className={i % 2 === 0 ? "bg-background" : "bg-muted/30"}
                                     >
                                         <td className="px-4 py-2">{item.client.name}</td>
-                                        <td className="px-4 py-2">{item.client.email}</td>
+                                        <td className="px-4 py-2">{item.client.email ?? "—"}</td>
                                         <td className="px-4 py-2 text-right">{item.totalServices}</td>
                                         <td className="px-4 py-2 text-right">
                                             {formatCurrency(item.totalSpent)}

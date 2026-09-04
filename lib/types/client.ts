@@ -5,7 +5,11 @@ export interface Client {
   id: number;
   name: string;
   phone: string;
-  email: string;
+  email?: string | null;
+  // Cliente único y reutilizable por taller ("Cliente Ocasional") para
+  // trabajos de una sola vez que no ameritan datos completos. No se puede
+  // archivar/eliminar (ver ensureGenericClient en la API).
+  isGeneric?: boolean;
   createdAt: string;
   updatedAt: string;
   bicycles: Bike[];

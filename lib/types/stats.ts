@@ -4,6 +4,8 @@ export interface StatsOverview {
   totalServices: number;
   totalServicesDone: number;
   totalRevenue: number;
+  totalExpenses: number;
+  netIncome: number;
 }
 
 export interface RevenuePoint {
@@ -14,6 +16,33 @@ export interface RevenuePoint {
 export interface RevenueStats {
   series: RevenuePoint[];
   totalRevenue: number;
+}
+
+export interface ExpensesByCategory {
+  SERVICIOS_BASICOS: number;
+  MATERIALES_INSUMOS: number;
+  SUELDOS: number;
+  OTRO: number;
+}
+
+export interface ExpenseStats {
+  series: RevenuePoint[];
+  totalExpenses: number;
+  byCategory: ExpensesByCategory;
+}
+
+export interface NetIncomePoint {
+  date: string;
+  revenue: number;
+  expenses: number;
+  net: number;
+}
+
+export interface NetIncomeStats {
+  series: NetIncomePoint[];
+  totalRevenue: number;
+  totalExpenses: number;
+  netIncome: number;
 }
 
 export interface ServicesByStatus {
@@ -27,7 +56,7 @@ export interface TopClientItem {
   client: {
     id: number;
     name: string;
-    email: string;
+    email: string | null;
     phone: string;
   };
   totalServices: number;

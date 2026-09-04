@@ -65,8 +65,22 @@ export default function ClientsPage() {
     });
 
     const columns: ColumnDef<Client>[] = [
-        { accessorKey: "name", header: "Nombre", enableSorting: true },
-        { accessorKey: "email", header: "Email", enableSorting: true },
+        {
+            accessorKey: "name",
+            header: "Nombre",
+            enableSorting: true,
+            cell: ({ row }) => (
+                <span className="inline-flex items-center gap-2">
+                    {row.original.name}
+                    {row.original.isGeneric && (
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Genérico
+                        </span>
+                    )}
+                </span>
+            ),
+        },
+        { accessorKey: "email", header: "Email", enableSorting: true, cell: ({ row }) => row.original.email ?? "—" },
         { accessorKey: "phone", header: "Teléfono", enableSorting: false },
         { accessorKey: "bicycles.length", header: "Bicicletas", enableSorting: false },
         {
@@ -87,9 +101,14 @@ export default function ClientsPage() {
                     <Button size="sm" variant="outline" onClick={() => { setSelectedClient(row.original); setModalOpen(true); }}>
                         <Edit size={16} />
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => { setSelectedClient(row.original); setDeleteModalOpen(true); }}>
-                        <Trash size={16} />
-                    </Button>
+                    {/* El cliente genérico ("Cliente Ocasional") es un registro compartido
+                        que reutiliza el taller; borrarlo rompería cualquier servicio que
+                        ya lo esté usando. El backend también lo protege (403). */}
+                    {!row.original.isGeneric && (
+                        <Button size="sm" variant="destructive" onClick={() => { setSelectedClient(row.original); setDeleteModalOpen(true); }}>
+                            <Trash size={16} />
+                        </Button>
+                    )}
                 </div>
             ),
         },

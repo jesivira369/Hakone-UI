@@ -25,9 +25,10 @@ export interface Service {
   category: ServiceCategory;
   isReminderActive: boolean;
   scheduledReminderDate?: string | null;
-  bicycle?: Bike;
+  bicycle?: Bike | null;
   clientId: number;
-  bicycleId: number;
+  // Opcional: reparaciones no ligadas a una bici registrada no tienen bicycleId.
+  bicycleId?: number | null;
   client?: Client;
   mechanic?: Mechanic;
   mechanicId: number;

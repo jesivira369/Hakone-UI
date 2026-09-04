@@ -61,7 +61,9 @@ const newClientSchema = z.object({
         .string()
         .min(8, "El teléfono debe tener al menos 8 caracteres")
         .regex(/^\+[1-9]\d{6,14}$/, "Debe estar en formato internacional (E.164)"),
-    email: z.string().email("Debe ser un email válido"),
+    // Opcional, igual que en ClientModal: para un cliente de una sola vez
+    // suele alcanzar con nombre y teléfono.
+    email: z.string().email("Debe ser un email válido").optional().or(z.literal("")),
 });
 
 const newBikeSchema = z.object({
@@ -76,6 +78,9 @@ const newMechanicSchema = z.object({
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type EntityMode = "existing" | "new";
+// "generic": el "Cliente Ocasional" único y reutilizable del taller, para
+// reparaciones sin bici y trabajos de una sola vez (ver ensureGenericClient en la API).
+type ClientMode = "existing" | "new" | "generic";
 
 interface InlineClientErrors { name?: string; phone?: string; email?: string }
 interface InlineBikeErrors { brand?: string; model?: string }
@@ -97,10 +102,16 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     // Parts (new format: name, quantity, unitPrice)
     const [parts, setParts] = useState<ServicePartInput[]>([]);
 
+    // Servicios que no están ligados a una bici registrada (armar una rueda
+    // suelta, etc). Cuando es false se oculta todo el bloque de bicicleta y
+    // el cliente se elige directamente en vez de derivarse de la bici.
+    const [hasBike, setHasBike] = useState(true);
+    const [loadingGeneric, setLoadingGeneric] = useState(false);
+
     // Entity selection modes
     const [bikeMode, setBikeMode] = useState<EntityMode>("existing");
     const [mechanicMode, setMechanicMode] = useState<EntityMode>("existing");
-    const [clientModeForBike, setClientModeForBike] = useState<EntityMode>("existing");
+    const [clientModeForBike, setClientModeForBike] = useState<ClientMode>("existing");
 
     // Selected IDs for existing entities
     const [selectedBikeId, setSelectedBikeId] = useState<number | null>(null);
@@ -189,8 +200,21 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         },
         getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
         initialPageParam: 1,
-        enabled: bikeMode === "new" && clientModeForBike === "existing",
+        enabled: (bikeMode === "new" || !hasBike) && clientModeForBike === "existing",
     });
+
+    const selectGenericClient = async () => {
+        setLoadingGeneric(true);
+        try {
+            const { data } = await api.get("/clients/generic");
+            setSelectedClientIdForBike(data.id);
+            setClientModeForBike("generic");
+        } catch {
+            toast.error("No se pudo obtener el Cliente Ocasional");
+        } finally {
+            setLoadingGeneric(false);
+        }
+    };
 
     // ── Populate form on edit ───────────────────────────────────────────────
 
@@ -209,10 +233,17 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                 toDateTimeLocal(service.deliveryAt ?? null) ||
                     toDateTimeLocal(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()),
             );
-            setSelectedBikeId(service.bicycleId);
+            const editingHasBike = Boolean(service.bicycleId);
+            setHasBike(editingHasBike);
+            setSelectedBikeId(service.bicycleId ?? null);
             setSelectedMechanicId(service.mechanicId);
             setBikeMode("existing");
             setMechanicMode("existing");
+            if (!editingHasBike) {
+                // Sin bici: el cliente se elige directo, no se deriva de ninguna bicicleta.
+                setClientModeForBike("existing");
+                setSelectedClientIdForBike(service.clientId);
+            }
             setValue("category", service.category ?? ServiceCategory.REPARACION_PUNTUAL);
             setValue("isReminderActive", Boolean(service.isReminderActive));
             setParts(
@@ -230,6 +261,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             setValue("deliveryAt", toDateTimeLocal(in2Days.toISOString()));
             setValue("category", ServiceCategory.REPARACION_PUNTUAL);
             setValue("isReminderActive", false);
+            setHasBike(true);
             setBikeMode("existing");
             setMechanicMode("existing");
             setClientModeForBike("existing");
@@ -273,11 +305,46 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
 
     // ── Submit ──────────────────────────────────────────────────────────────
 
+    // Cliente: existente ya elegido, genérico ya resuelto (selectGenericClient),
+    // o uno nuevo — validado con el mismo schema en ambos flujos (con/sin bici).
+    const validateClientSelection = (): boolean => {
+        if (clientModeForBike === "new") {
+            const clientResult = newClientSchema.safeParse(newClient);
+            if (!clientResult.success) {
+                const errs: InlineClientErrors = {};
+                clientResult.error.issues.forEach((i) => {
+                    errs[i.path[0] as keyof InlineClientErrors] = i.message;
+                });
+                setClientErrors(errs);
+                return false;
+            }
+            setClientErrors({});
+            return true;
+        }
+        if (!selectedClientIdForBike) {
+            toast.error("Selecciona un cliente");
+            return false;
+        }
+        return true;
+    };
+
+    const resolveClientId = async (): Promise<number> => {
+        if (clientModeForBike === "new") {
+            const { data: createdClient } = await api.post("/clients", newClient);
+            queryClient.invalidateQueries({ queryKey: ["clients"] });
+            return createdClient.id;
+        }
+        // "existing" o "generic": selectedClientIdForBike ya tiene el id resuelto.
+        return selectedClientIdForBike!;
+    };
+
     const onSubmit = async (formData: z.infer<typeof serviceSchema>) => {
         let hasErrors = false;
 
-        // Validate bicycle section
-        if (bikeMode === "new") {
+        if (!hasBike) {
+            // Sin bici: el cliente se valida directo, no hay nada de bicicleta que chequear.
+            if (!validateClientSelection()) hasErrors = true;
+        } else if (bikeMode === "new") {
             const bikeResult = newBikeSchema.safeParse(newBike);
             if (!bikeResult.success) {
                 const errs: InlineBikeErrors = {};
@@ -290,22 +357,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                 setBikeErrors({});
             }
 
-            if (clientModeForBike === "new") {
-                const clientResult = newClientSchema.safeParse(newClient);
-                if (!clientResult.success) {
-                    const errs: InlineClientErrors = {};
-                    clientResult.error.issues.forEach((i) => {
-                        errs[i.path[0] as keyof InlineClientErrors] = i.message;
-                    });
-                    setClientErrors(errs);
-                    hasErrors = true;
-                } else {
-                    setClientErrors({});
-                }
-            } else if (!selectedClientIdForBike) {
-                toast.error("Selecciona un cliente para la bicicleta");
-                hasErrors = true;
-            }
+            if (!validateClientSelection()) hasErrors = true;
         } else if (!selectedBikeId) {
             toast.error("Selecciona una bicicleta");
             hasErrors = true;
@@ -334,20 +386,16 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         setIsSubmitting(true);
         try {
             let resolvedClientId = service?.clientId ?? 0;
-            let resolvedBikeId = selectedBikeId ?? 0;
+            // undefined a propósito: un servicio sin bici no manda bicycleId
+            // (JSON.stringify lo omite del payload, coincide con el opcional del backend).
+            let resolvedBikeId: number | undefined;
             let resolvedMechanicId = selectedMechanicId ?? 0;
 
-            // 1. Create client if needed
-            if (bikeMode === "new") {
-                if (clientModeForBike === "new") {
-                    const { data: createdClient } = await api.post("/clients", newClient);
-                    resolvedClientId = createdClient.id;
-                    queryClient.invalidateQueries({ queryKey: ["clients"] });
-                } else {
-                    resolvedClientId = selectedClientIdForBike!;
-                }
+            if (!hasBike) {
+                resolvedClientId = await resolveClientId();
+            } else if (bikeMode === "new") {
+                resolvedClientId = await resolveClientId();
 
-                // 2. Create bicycle
                 const { data: createdBike } = await api.post("/bicycles", {
                     brand: newBike.brand,
                     model: newBike.model,
@@ -356,6 +404,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                 resolvedBikeId = createdBike.id;
                 queryClient.invalidateQueries({ queryKey: ["bicycles"] });
             } else {
+                resolvedBikeId = selectedBikeId ?? undefined;
                 const allBikes = bicyclesData?.pages.flatMap((p) => p.data) ?? [];
                 const bike = allBikes.find((b) => b.id === selectedBikeId);
                 resolvedClientId = bike?.clientId ?? service?.clientId ?? 0;
@@ -406,6 +455,109 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         }
     };
 
+    // ── Selector de cliente (compartido: dentro de "bici nueva" y en el flujo sin bici) ──
+
+    const clientPicker = clientModeForBike === "generic" ? (
+        <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
+            <span className="text-sm font-medium">Cliente Ocasional seleccionado</span>
+            <button
+                type="button"
+                className="text-xs text-muted-foreground hover:underline"
+                onClick={() => {
+                    setClientModeForBike("existing");
+                    setSelectedClientIdForBike(null);
+                }}
+            >
+                Cambiar
+            </button>
+        </div>
+    ) : clientModeForBike === "existing" ? (
+        <div className="space-y-2">
+            <Select
+                value={selectedClientIdForBike?.toString() ?? ""}
+                onValueChange={(val) => {
+                    if (val === "NEW") {
+                        setClientModeForBike("new");
+                        setSelectedClientIdForBike(null);
+                        return;
+                    }
+                    setSelectedClientIdForBike(Number(val));
+                }}
+            >
+                <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un cliente" />
+                </SelectTrigger>
+                <SelectContent
+                    onScroll={(e) => {
+                        const el = e.currentTarget;
+                        if (el.scrollHeight - el.scrollTop === el.clientHeight && hasNextClient)
+                            fetchNextClient();
+                    }}
+                >
+                    <SelectItem value="NEW" className="text-primary font-medium">
+                        + Nuevo Cliente
+                    </SelectItem>
+                    {clientsData?.pages.flatMap((page) =>
+                        page.data.map((client: Client) => (
+                            <SelectItem key={client.id} value={client.id.toString()}>
+                                {client.name}
+                                {client.email ? ` — ${client.email}` : ""}
+                            </SelectItem>
+                        )),
+                    )}
+                </SelectContent>
+            </Select>
+            <button
+                type="button"
+                onClick={selectGenericClient}
+                disabled={loadingGeneric}
+                className="text-xs text-primary hover:underline"
+            >
+                {loadingGeneric ? "Buscando Cliente Ocasional..." : "Usar Cliente Ocasional (trabajo de una sola vez)"}
+            </button>
+        </div>
+    ) : (
+        <div className="border rounded-lg p-3 space-y-3 bg-muted/20">
+            <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-primary">Nuevo Cliente</span>
+                <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:underline"
+                    onClick={() => setClientModeForBike("existing")}
+                >
+                    Seleccionar existente
+                </button>
+            </div>
+            <div>
+                <label className="block text-xs font-medium mb-1">Nombre</label>
+                <Input
+                    value={newClient.name}
+                    onChange={(e) => setNewClient((c) => ({ ...c, name: e.target.value }))}
+                    placeholder="Juan Pérez"
+                />
+                {clientErrors.name && <p className="text-red-500 text-xs mt-1">{clientErrors.name}</p>}
+            </div>
+            <div>
+                <label className="block text-xs font-medium mb-1">Teléfono</label>
+                <PhoneInputE164
+                    value={newClient.phone}
+                    onChange={(next) => setNewClient((c) => ({ ...c, phone: next }))}
+                />
+                {clientErrors.phone && <p className="text-red-500 text-xs mt-1">{clientErrors.phone}</p>}
+            </div>
+            <div>
+                <label className="block text-xs font-medium mb-1">Email (opcional)</label>
+                <Input
+                    type="email"
+                    value={newClient.email}
+                    onChange={(e) => setNewClient((c) => ({ ...c, email: e.target.value }))}
+                    placeholder="juan@email.com"
+                />
+                {clientErrors.email && <p className="text-red-500 text-xs mt-1">{clientErrors.email}</p>}
+            </div>
+        </div>
+    );
+
     // ── Render ──────────────────────────────────────────────────────────────
 
     return (
@@ -417,7 +569,30 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-                    {/* ── Bicicleta ── */}
+                    {/* ── ¿Bicicleta registrada? ── */}
+                    <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/20 p-3">
+                        <div className="min-w-0">
+                            <div className="text-sm font-medium">¿Es sobre una bicicleta registrada?</div>
+                            <div className="text-xs text-muted-foreground">
+                                Desactivalo para reparaciones sueltas (armar una rueda, etc.) que no requieren registrar una bici.
+                            </div>
+                        </div>
+                        <Switch
+                            checked={hasBike}
+                            onCheckedChange={(checked) => {
+                                setHasBike(checked);
+                                if (!checked) setClientModeForBike("existing");
+                            }}
+                        />
+                    </div>
+
+                    {/* ── Bicicleta (o cliente directo si no hay bici) ── */}
+                    {!hasBike ? (
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium">Cliente</label>
+                            {clientPicker}
+                        </div>
+                    ) : (
                     <div className="space-y-2">
                         <label className="block text-sm font-medium">Bicicleta</label>
                         {bikeMode === "existing" ? (
@@ -500,124 +675,12 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                 {/* Cliente para la bicicleta */}
                                 <div>
                                     <label className="block text-xs font-medium mb-1">Cliente de la bicicleta</label>
-                                    {clientModeForBike === "existing" ? (
-                                        <Select
-                                            value={selectedClientIdForBike?.toString() ?? ""}
-                                            onValueChange={(val) => {
-                                                if (val === "NEW") {
-                                                    setClientModeForBike("new");
-                                                    setSelectedClientIdForBike(null);
-                                                    return;
-                                                }
-                                                setSelectedClientIdForBike(Number(val));
-                                            }}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecciona un cliente" />
-                                            </SelectTrigger>
-                                            <SelectContent
-                                                onScroll={(e) => {
-                                                    const el = e.currentTarget;
-                                                    if (
-                                                        el.scrollHeight - el.scrollTop ===
-                                                            el.clientHeight &&
-                                                        hasNextClient
-                                                    )
-                                                        fetchNextClient();
-                                                }}
-                                            >
-                                                <SelectItem
-                                                    value="NEW"
-                                                    className="text-primary font-medium"
-                                                >
-                                                    + Nuevo Cliente
-                                                </SelectItem>
-                                                {clientsData?.pages.flatMap((page) =>
-                                                    page.data.map((client: Client) => (
-                                                        <SelectItem
-                                                            key={client.id}
-                                                            value={client.id.toString()}
-                                                        >
-                                                            {client.name} — {client.email}
-                                                        </SelectItem>
-                                                    )),
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                    ) : (
-                                        <div className="border rounded-lg p-3 space-y-3 bg-muted/20">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-xs font-medium text-primary">
-                                                    Nuevo Cliente
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    className="text-xs text-muted-foreground hover:underline"
-                                                    onClick={() => setClientModeForBike("existing")}
-                                                >
-                                                    Seleccionar existente
-                                                </button>
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium mb-1">Nombre</label>
-                                                <Input
-                                                    value={newClient.name}
-                                                    onChange={(e) =>
-                                                        setNewClient((c) => ({
-                                                            ...c,
-                                                            name: e.target.value,
-                                                        }))
-                                                    }
-                                                    placeholder="Juan Pérez"
-                                                />
-                                                {clientErrors.name && (
-                                                    <p className="text-red-500 text-xs mt-1">
-                                                        {clientErrors.name}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium mb-1">Teléfono</label>
-                                                <PhoneInputE164
-                                                    value={newClient.phone}
-                                                    onChange={(next) =>
-                                                        setNewClient((c) => ({
-                                                            ...c,
-                                                            phone: next,
-                                                        }))
-                                                    }
-                                                />
-                                                {clientErrors.phone && (
-                                                    <p className="text-red-500 text-xs mt-1">
-                                                        {clientErrors.phone}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium mb-1">Email</label>
-                                                <Input
-                                                    type="email"
-                                                    value={newClient.email}
-                                                    onChange={(e) =>
-                                                        setNewClient((c) => ({
-                                                            ...c,
-                                                            email: e.target.value,
-                                                        }))
-                                                    }
-                                                    placeholder="juan@email.com"
-                                                />
-                                                {clientErrors.email && (
-                                                    <p className="text-red-500 text-xs mt-1">
-                                                        {clientErrors.email}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
+                                    {clientPicker}
                                 </div>
                             </div>
                         )}
                     </div>
+                    )}
 
                     {/* ── Mecánico ── */}
                     <div className="space-y-2">

@@ -18,6 +18,7 @@ export function middleware(req: NextRequest) {
     path.startsWith("/bikes") ||
     path.startsWith("/services") ||
     path.startsWith("/mechanics") ||
+    path.startsWith("/gastos") ||
     path.startsWith("/admin") ||
     path.startsWith("/cuenta");
 
@@ -37,6 +38,7 @@ export const config = {
     "/bikes/:path*",
     "/services/:path*",
     "/mechanics/:path*",
+    "/gastos/:path*",
     "/admin/:path*",
     "/cuenta/:path*",
   ],

@@ -26,7 +26,8 @@ const newClientSchema = z.object({
         .string()
         .min(8, "El teléfono debe tener al menos 8 caracteres")
         .regex(/^\+[1-9]\d{6,14}$/, "Debe estar en formato internacional (E.164)"),
-    email: z.string().email("Debe ser un email válido"),
+    // Opcional, igual que en ClientModal y ServiceModal.
+    email: z.string().email("Debe ser un email válido").optional().or(z.literal("")),
 });
 
 type EntityMode = "existing" | "new";
@@ -211,7 +212,8 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
                                         {clientsData?.pages.flatMap((page) =>
                                             page.data.map((client: Client) => (
                                                 <SelectItem key={client.id} value={client.id.toString()}>
-                                                    {client.name} - {client.email}
+                                                    {client.name}
+                                                    {client.email ? ` - ${client.email}` : ""}
                                                 </SelectItem>
                                             ))
                                         )}
@@ -255,7 +257,7 @@ export function BicycleModal({ isOpen, onClose, bicycle }: BicycleModalProps) {
                                     {clientErrors.phone && <p className="text-red-500 text-xs mt-1">{clientErrors.phone}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium mb-1">Email</label>
+                                    <label className="block text-xs font-medium mb-1">Email (opcional)</label>
                                     <Input
                                         type="email"
                                         value={newClient.email}

@@ -19,7 +19,9 @@ const clientSchema = z.object({
         .string()
         .min(8, "El teléfono debe tener al menos 8 caracteres")
         .regex(/^\+[1-9]\d{6,14}$/, "Número inválido para WhatsApp. Seleccioná el país e ingresá el número sin 0 ni 15."),
-    email: z.string().email("Debe ser un email válido"),
+    // Opcional: para muchos clientes de una sola vez alcanza con nombre y
+    // teléfono. Campo vacío se manda como "" y el backend lo normaliza a null.
+    email: z.string().email("Debe ser un email válido").optional().or(z.literal("")),
 });
 
 interface ClientModalProps {
@@ -29,7 +31,7 @@ interface ClientModalProps {
         id: number;
         name: string;
         phone: string;
-        email: string;
+        email?: string | null;
     } | null;
 }
 
@@ -56,7 +58,7 @@ export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
         if (client) {
             setValue("name", client.name);
             setValue("phone", client.phone);
-            setValue("email", client.email);
+            setValue("email", client.email ?? "");
         } else {
             reset();
         }
@@ -111,7 +113,7 @@ export function ClientModal({ isOpen, onClose, client }: ClientModalProps) {
                         {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium">Email</label>
+                        <label className="block text-sm font-medium">Email (opcional)</label>
                         <Input type="email" {...register("email")} placeholder="juan@email.com" />
                         {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
                     </div>

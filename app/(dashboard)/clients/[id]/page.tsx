@@ -85,7 +85,7 @@ export default function ClientDetailPage() {
                     </CardHeader>
                     <CardContent>
                         <p><strong>Teléfono:</strong> {clientData.phone}</p>
-                        <p><strong>Email:</strong> {clientData.email}</p>
+                        <p><strong>Email:</strong> {clientData.email || "No disponible"}</p>
                     </CardContent>
                 </Card>
 

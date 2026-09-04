@@ -80,7 +80,7 @@ export default function ServicesPage() {
                 const bike = row.original.bicycle;
                 return (
                     <div>
-                        {bike?.brand} {bike?.model}
+                        {bike ? `${bike.brand} ${bike.model}` : "—"}
                     </div>
                 );
             },

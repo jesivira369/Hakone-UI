@@ -10,6 +10,7 @@ import { Users, Bike, Wrench, DollarSign, Download, TrendingDown, TrendingUp } f
 import { DashboardSkeleton } from "@/components/ui/Skeleton/DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DeleteModal } from "@/components/ui/DeleteModal";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "react-toastify";
 import { StatsOverview, RevenueStats, ExpenseStats, ServicesByStatus, TopClientItem } from "@/lib/types";
@@ -38,7 +39,7 @@ type UpcomingReminder = {
 
 type UpcomingTab = "todos" | "inicio" | "entrega";
 
-function ReminderContactButton({ serviceId }: { serviceId: number }) {
+function ReminderContactButton({ serviceId, contacted }: { serviceId: number; contacted: boolean }) {
     const queryClient = useQueryClient();
     const mutation = useMutation({
         mutationFn: () => api.patch(`/services/${serviceId}/reminder-contacted`),
@@ -50,6 +51,14 @@ function ReminderContactButton({ serviceId }: { serviceId: number }) {
             toast.error("Error al marcar el recordatorio");
         },
     });
+
+    if (contacted) {
+        return (
+            <span className="inline-flex items-center rounded-md border border-green-600/30 bg-green-600/10 px-2 py-1 text-[11px] font-medium text-green-700 dark:text-green-400">
+                ✓ Ya contactado
+            </span>
+        );
+    }
 
     return (
         <button
@@ -64,6 +73,43 @@ function ReminderContactButton({ serviceId }: { serviceId: number }) {
         >
             {mutation.isPending ? "..." : "✓ Contactado"}
         </button>
+    );
+}
+
+function ReminderDeleteButton({ serviceId, itemName }: { serviceId: number; itemName: string }) {
+    const queryClient = useQueryClient();
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const mutation = useMutation({
+        mutationFn: () => api.delete(`/services/${serviceId}/reminder`),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["services-reminders-upcoming"] });
+            toast.success("Recordatorio eliminado");
+        },
+        onError: () => {
+            toast.error("Error al eliminar el recordatorio");
+        },
+    });
+
+    return (
+        <>
+            <button
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setConfirmOpen(true);
+                }}
+                title="Borrar recordatorio"
+                className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
+            >
+                Borrar
+            </button>
+            <DeleteModal
+                isOpen={confirmOpen}
+                onClose={() => setConfirmOpen(false)}
+                onDelete={() => mutation.mutateAsync()}
+                itemName={`el recordatorio de ${itemName}`}
+            />
+        </>
     );
 }
 
@@ -452,7 +498,11 @@ export default function DashboardOverview() {
                                                 WhatsApp
                                             </a>
                                         )}
-                                        <ReminderContactButton serviceId={r.id} />
+                                        <ReminderContactButton serviceId={r.id} contacted={!!r.reminderContactedAt} />
+                                        <ReminderDeleteButton
+                                            serviceId={r.id}
+                                            itemName={`${r.client?.name ?? "este cliente"} · ${bikeLabel || "—"}`}
+                                        />
                                     </div>
                                 </div>
                             );

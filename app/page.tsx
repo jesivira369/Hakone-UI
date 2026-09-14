@@ -170,7 +170,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 text-center">
           <motion.div {...fadeIn}>
             <span className="mb-6 inline-block rounded-full border border-accent/20 bg-accent/10 px-4 py-1.5 text-xs font-semibold tracking-widest text-accent uppercase">
-              SaaS para talleres de elite
+              Sistema para talleres de elite
             </span>
             <h1 className="mb-6 text-5xl font-extrabold tracking-tight md:text-7xl">
               Gestioná tu taller en <br />
@@ -575,11 +575,15 @@ export default function LandingPage() {
                 Plataforma moderna para gestionar servicios, agenda y operación de talleres de bicicletas.
               </p>
               <div className="flex gap-2">
-                <Button size="icon" variant="ghost" className="rounded-full hover:bg-primary/10 hover:text-primary">
-                  <Instagram className="h-5 w-5" />
+                <Button size="icon" variant="ghost" className="rounded-full hover:bg-primary/10 hover:text-primary" asChild>
+                  <a href="https://www.instagram.com/hakoneservice/" target="_blank" rel="noopener noreferrer">
+                    <Instagram className="h-5 w-5" />
+                  </a>
                 </Button>
-                <Button size="icon" variant="ghost" className="rounded-full hover:bg-primary/10 hover:text-primary">
-                  <Linkedin className="h-5 w-5" />
+                <Button size="icon" variant="ghost" className="rounded-full hover:bg-primary/10 hover:text-primary" asChild>
+                  <a href="https://www.linkedin.com/in/jesussivira/" target="_blank" rel="noopener noreferrer">
+                    <Linkedin className="h-5 w-5" />
+                  </a>
                 </Button>
                 <Button size="icon" variant="ghost" className="rounded-full hover:bg-primary/10 hover:text-primary">
                   <Mail className="h-5 w-5" />

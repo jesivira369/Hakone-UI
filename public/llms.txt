@@ -1,0 +1,37 @@
+# Hakone
+
+> Hakone es una aplicación de gestión para talleres de bicicletas: servicios,
+> clientes, bicicletas, calendario y facturación, con recordatorios de
+> mantenimiento y control de mecánicos. Se ofrece como SaaS por suscripción.
+
+Hakone ayuda a talleres de bicicletas a llevar el control operativo del
+negocio: qué bicicleta está en qué estado, qué repuestos se usaron, cuánto se
+le cobra a cada cliente, y cuándo conviene contactarlo para el próximo
+mantenimiento.
+
+## Producto
+
+- [Landing](https://hakoneservice.com/): presentación del producto, planes y
+  contacto.
+- [Iniciar sesión](https://hakoneservice.com/login): acceso para talleres con
+  cuenta activa.
+
+## Funcionalidad principal
+
+- Dashboard con facturación, servicios por estado y ranking de clientes.
+- Calendario de servicios por fecha de ingreso o de entrega.
+- Gestión de servicios: repuestos, mecánico asignado, estados, contacto por
+  WhatsApp.
+- Fichas de clientes y bicicletas con historial completo.
+- Gestión de mecánicos sin límite de cantidad.
+- Recordatorios de mantenimiento pendientes de contactar.
+
+## Legal
+
+- [Privacidad](https://hakoneservice.com/privacidad)
+- [Términos](https://hakoneservice.com/terminos)
+
+## Contacto
+
+Formulario de contacto disponible en la landing:
+https://hakoneservice.com/#contacto

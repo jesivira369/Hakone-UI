@@ -616,14 +616,14 @@ export default function LandingPage() {
               <h3 className="text-sm font-bold tracking-widest uppercase">Legal</h3>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li>
-                  <a className="transition-colors hover:text-primary" href="#">
+                  <Link className="transition-colors hover:text-primary" href="/privacidad">
                     Privacidad
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a className="transition-colors hover:text-primary" href="#">
+                  <Link className="transition-colors hover:text-primary" href="/terminos">
                     Términos
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   <a className="transition-colors hover:text-primary" href="#contacto">

@@ -33,7 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 pathname === "/" ||
                 pathname?.startsWith("/login") ||
                 pathname?.startsWith("/register") ||
-                pathname?.startsWith("/contact")
+                pathname?.startsWith("/contact") ||
+                pathname?.startsWith("/privacidad") ||
+                pathname?.startsWith("/terminos")
             ) {
                 if (!cancelled) setIsLoading(false);
                 return;
@@ -60,7 +62,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     pathname !== "/" &&
                     !pathname.startsWith("/login") &&
                     !pathname.startsWith("/register") &&
-                    !pathname.startsWith("/contact")
+                    !pathname.startsWith("/contact") &&
+                    !pathname.startsWith("/privacidad") &&
+                    !pathname.startsWith("/terminos")
                 ) {
                     router.replace("/login");
                 }

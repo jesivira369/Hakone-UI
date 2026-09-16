@@ -114,6 +114,7 @@ necesitás un rango, filtralo del lado del servidor (como hace el calendario con
 |---|---|
 | `NEXT_PUBLIC_API_URL` | Base de la API **sin** `/api/v1`. La usa el proxy del lado del servidor |
 | `NEXT_PUBLIC_SUPPORT_WHATSAPP` | Solo dígitos, sin `+` (va dentro de un link `wa.me/`) |
+| `NEXT_PUBLIC_GA_ID` | Measurement ID de Google Analytics 4 (`G-XXXXXXX`). Vacío = no carga el script |
 
 Ojo: las `NEXT_PUBLIC_*` se inlinean **en tiempo de build**. Cambiarlas exige
 un redeploy, no alcanza con reiniciar.

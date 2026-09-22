@@ -20,39 +20,42 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
+import { invalidateServiceQueries } from "@/lib/invalidateServiceQueries";
 import { formatCurrency } from "@/lib/utils";
-import { Bike, BikeQuery, Client, ClientQuery, Mechanic, MechanicQuery, Service, ServicePartInput } from "@/lib/types";
+import { Bike, Client, ClientQuery, Mechanic, MechanicQuery, Service } from "@/lib/types";
 import { Plus, Trash } from "lucide-react";
 import { toast } from "react-toastify";
 import { PhoneInputE164 } from "@/components/ui/PhoneInputE164";
 import { Switch } from "@/components/ui/switch";
-import { ServiceCategory, ServiceCategoryLabels } from "@/lib/enums";
+import { NumericInput } from "@/components/ui/NumericInput";
+import {
+    ServiceCategory,
+    ServiceCategoryLabels,
+    ServiceStatus,
+    ServiceStatusLabels,
+    serviceStatusRuleErrors,
+} from "@/lib/enums";
+import { dateInputToIso, isoToDateInput, toDateInputValue } from "@/lib/utils/formatDate";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function toDateTimeLocal(iso: string | null | undefined): string {
-    if (!iso) return "";
-    const d = new Date(iso);
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+// Estados que se pueden elegir al crear. `PAID` no está: solo se llega por el checkout de cobro.
+const CREATABLE_STATUSES = Object.values(ServiceStatus).filter((st) => st !== ServiceStatus.PAID);
 
-function toISOString(local: string): string {
-    if (!local) return new Date().toISOString();
-    return new Date(local).toISOString();
-}
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
+// Mano de obra y fechas se validan a mano según el estado (ver onSubmit).
 const serviceSchema = z.object({
     description: z.string().min(5, "La descripción debe tener al menos 5 caracteres"),
-    price: z.number().min(0.01, "El precio debe ser mayor a 0"),
-    scheduledAt: z.string().min(1, "La fecha de programación es requerida"),
-    deliveryAt: z.string().min(1, "La fecha de entrega es requerida"),
+    scheduledAt: z.string(),
+    deliveryAt: z.string(),
     category: z.nativeEnum(ServiceCategory),
+    status: z.nativeEnum(ServiceStatus),
     isReminderActive: z.boolean(),
+    isUrgent: z.boolean(),
 });
 
 const newClientSchema = z.object({
@@ -79,8 +82,12 @@ const newMechanicSchema = z.object({
 
 type EntityMode = "existing" | "new";
 // "generic": el "Cliente Ocasional" único y reutilizable del taller, para
-// reparaciones sin bici y trabajos de una sola vez (ver ensureGenericClient en la API).
+// trabajos de una sola vez (ver ensureGenericClient en la API). Va siempre con "bici ocasional" (sin bici).
 type ClientMode = "existing" | "new" | "generic";
+
+// Cantidad y precio pueden quedar vacíos mientras se escribe (ver NumericInput).
+interface PartDraft { name: string; quantity: number | null; unitPrice: number | null }
+interface FieldErrors { price?: string; scheduledAt?: string; deliveryAt?: string; client?: string; bike?: string }
 
 interface InlineClientErrors { name?: string; phone?: string; email?: string }
 interface InlineBikeErrors { brand?: string; model?: string }
@@ -97,26 +104,23 @@ interface ServiceModalProps {
 export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     const queryClient = useQueryClient();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [priceInput, setPriceInput] = useState<string>("");
+    const [price, setPrice] = useState<number | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-    // Parts (new format: name, quantity, unitPrice)
-    const [parts, setParts] = useState<ServicePartInput[]>([]);
+    // Parts (name, quantity, unitPrice)
+    const [parts, setParts] = useState<PartDraft[]>([]);
 
-    // Servicios que no están ligados a una bici registrada (armar una rueda
-    // suelta, etc). Cuando es false se oculta todo el bloque de bicicleta y
-    // el cliente se elige directamente en vez de derivarse de la bici.
-    const [hasBike, setHasBike] = useState(true);
     const [loadingGeneric, setLoadingGeneric] = useState(false);
 
     // Entity selection modes
     const [bikeMode, setBikeMode] = useState<EntityMode>("existing");
     const [mechanicMode, setMechanicMode] = useState<EntityMode>("existing");
-    const [clientModeForBike, setClientModeForBike] = useState<ClientMode>("existing");
+    const [clientMode, setClientMode] = useState<ClientMode>("existing");
 
     // Selected IDs for existing entities
     const [selectedBikeId, setSelectedBikeId] = useState<number | null>(null);
     const [selectedMechanicId, setSelectedMechanicId] = useState<number | null>(null);
-    const [selectedClientIdForBike, setSelectedClientIdForBike] = useState<number | null>(null);
+    const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
 
     // New entity data
     const [newBike, setNewBike] = useState({ brand: "", model: "" });
@@ -140,38 +144,38 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         resolver: zodResolver(serviceSchema),
         defaultValues: {
             description: "",
-            price: 0,
             scheduledAt: "",
             deliveryAt: "",
             category: ServiceCategory.REPARACION_PUNTUAL,
+            status: ServiceStatus.IN_REVIEW,
             isReminderActive: false,
+            isUrgent: false,
         },
     });
 
     const watchedCategory = (watch("category") as ServiceCategory | undefined) ?? ServiceCategory.REPARACION_PUNTUAL;
     const watchedReminder = Boolean(watch("isReminderActive"));
+    const watchedUrgent = Boolean(watch("isUrgent"));
+    // Al editar no se cambia el estado desde acá (eso se hace en el detalle); las reglas usan el estado actual.
+    const effectiveStatus: string = service ? service.status : (watch("status") as string);
 
+    // No hay envío automático: el aviso aparece en el dashboard para contactar al cliente.
     const reminderHint =
-        watchedCategory === ServiceCategory.MANTENIMIENTO_INTEGRAL
-            ? "Se enviará un aviso en 6 meses (desde la fecha de finalización)."
-            : watchedCategory === ServiceCategory.TRANSMISION_FRENOS
-                ? "Se enviará un aviso en 3 meses (desde la fecha de finalización)."
-                : null;
+        watchedCategory === ServiceCategory.MANTENIMIENTO_INTEGRAL ||
+        watchedCategory === ServiceCategory.TRANSMISION_FRENOS
+            ? "Se te recordará contactar al cliente en 6 meses (desde la fecha de finalización)."
+            : null;
 
     // ── Infinite queries ────────────────────────────────────────────────────
 
-    const {
-        data: bicyclesData,
-        fetchNextPage: fetchNextBike,
-        hasNextPage: hasNextBike,
-    } = useInfiniteQuery<BikeQuery>({
-        queryKey: ["bicycles"],
-        queryFn: async ({ pageParam = 1 }) => {
-            const { data } = await api.get(`/bicycles?page=${pageParam}&limit=50`);
-            return data;
+    // Solo las bicis del cliente elegido (la API filtra por clientId).
+    const { data: clientBikes } = useQuery<Bike[]>({
+        queryKey: ["bicycles", "by-client", selectedClientId],
+        queryFn: async () => {
+            const { data } = await api.get(`/bicycles?clientId=${selectedClientId}&page=1&limit=100`);
+            return data.data as Bike[];
         },
-        getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
-        initialPageParam: 1,
+        enabled: clientMode === "existing" && selectedClientId !== null,
     });
 
     const {
@@ -200,15 +204,17 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         },
         getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
         initialPageParam: 1,
-        enabled: (bikeMode === "new" || !hasBike) && clientModeForBike === "existing",
+        enabled: isOpen && clientMode === "existing",
     });
 
     const selectGenericClient = async () => {
         setLoadingGeneric(true);
         try {
             const { data } = await api.get("/clients/generic");
-            setSelectedClientIdForBike(data.id);
-            setClientModeForBike("generic");
+            setSelectedClientId(data.id);
+            setClientMode("generic");
+            setSelectedBikeId(null);
+            setBikeMode("existing");
         } catch {
             toast.error("No se pudo obtener el Cliente Ocasional");
         } finally {
@@ -219,31 +225,20 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     // ── Populate form on edit ───────────────────────────────────────────────
 
     useEffect(() => {
+        setFieldErrors({});
         if (service) {
             setValue("description", service.description);
-            setValue("price", service.price);
-            setPriceInput(String(service.price));
-            setValue(
-                "scheduledAt",
-                toDateTimeLocal(service.scheduledAt ?? null) ||
-                    toDateTimeLocal(new Date().toISOString()),
-            );
-            setValue(
-                "deliveryAt",
-                toDateTimeLocal(service.deliveryAt ?? null) ||
-                    toDateTimeLocal(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()),
-            );
-            const editingHasBike = Boolean(service.bicycleId);
-            setHasBike(editingHasBike);
+            setPrice(service.price);
+            setValue("scheduledAt", isoToDateInput(service.scheduledAt));
+            setValue("deliveryAt", isoToDateInput(service.deliveryAt));
+            setValue("status", service.status as ServiceStatus);
+            setValue("isUrgent", Boolean(service.isUrgent));
             setSelectedBikeId(service.bicycleId ?? null);
             setSelectedMechanicId(service.mechanicId);
             setBikeMode("existing");
             setMechanicMode("existing");
-            if (!editingHasBike) {
-                // Sin bici: el cliente se elige directo, no se deriva de ninguna bicicleta.
-                setClientModeForBike("existing");
-                setSelectedClientIdForBike(service.clientId);
-            }
+            setSelectedClientId(service.clientId);
+            setClientMode(service.client?.isGeneric ? "generic" : "existing");
             setValue("category", service.category ?? ServiceCategory.REPARACION_PUNTUAL);
             setValue("isReminderActive", Boolean(service.isReminderActive));
             setParts(
@@ -257,22 +252,23 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             reset();
             const now = new Date();
             const in2Days = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
-            setValue("scheduledAt", toDateTimeLocal(now.toISOString()));
-            setValue("deliveryAt", toDateTimeLocal(in2Days.toISOString()));
+            setValue("scheduledAt", toDateInputValue(now));
+            setValue("deliveryAt", toDateInputValue(in2Days));
             setValue("category", ServiceCategory.REPARACION_PUNTUAL);
+            setValue("status", ServiceStatus.IN_REVIEW);
             setValue("isReminderActive", false);
-            setHasBike(true);
+            setValue("isUrgent", false);
             setBikeMode("existing");
             setMechanicMode("existing");
-            setClientModeForBike("existing");
+            setClientMode("existing");
             setSelectedBikeId(null);
             setSelectedMechanicId(null);
-            setSelectedClientIdForBike(null);
+            setSelectedClientId(null);
             setNewBike({ brand: "", model: "" });
             setNewMechanic({ name: "" });
             setNewClient({ name: "", phone: "", email: "" });
             setParts([]);
-            setPriceInput("");
+            setPrice(null);
         }
     }, [service, setValue, reset]);
 
@@ -296,19 +292,18 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
 
     // ── Parts helpers ───────────────────────────────────────────────────────
 
-    const addPart = () => setParts((p) => [...p, { name: "", quantity: 1, unitPrice: 0 }]);
+    const addPart = () => setParts((p) => [...p, { name: "", quantity: 1, unitPrice: null }]);
     const removePart = (i: number) => setParts((p) => p.filter((_, idx) => idx !== i));
-    const updatePart = (i: number, field: keyof ServicePartInput, value: string | number) =>
-        setParts((p) => p.map((part, idx) => (idx === i ? { ...part, [field]: value } : part)));
+    const updatePart = (i: number, patch: Partial<PartDraft>) =>
+        setParts((p) => p.map((part, idx) => (idx === i ? { ...part, ...patch } : part)));
 
-    const totalParts = parts.reduce((sum, p) => sum + p.quantity * p.unitPrice, 0);
+    const totalParts = parts.reduce((sum, p) => sum + (p.quantity ?? 0) * (p.unitPrice ?? 0), 0);
 
     // ── Submit ──────────────────────────────────────────────────────────────
 
-    // Cliente: existente ya elegido, genérico ya resuelto (selectGenericClient),
-    // o uno nuevo — validado con el mismo schema en ambos flujos (con/sin bici).
+    // Cliente: existente ya elegido, genérico ya resuelto (selectGenericClient) o uno nuevo.
     const validateClientSelection = (): boolean => {
-        if (clientModeForBike === "new") {
+        if (clientMode === "new") {
             const clientResult = newClientSchema.safeParse(newClient);
             if (!clientResult.success) {
                 const errs: InlineClientErrors = {};
@@ -321,45 +316,55 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             setClientErrors({});
             return true;
         }
-        if (!selectedClientIdForBike) {
-            toast.error("Selecciona un cliente");
-            return false;
-        }
-        return true;
+        return selectedClientId !== null;
     };
 
     const resolveClientId = async (): Promise<number> => {
-        if (clientModeForBike === "new") {
+        if (clientMode === "new") {
             const { data: createdClient } = await api.post("/clients", newClient);
             queryClient.invalidateQueries({ queryKey: ["clients"] });
             return createdClient.id;
         }
-        // "existing" o "generic": selectedClientIdForBike ya tiene el id resuelto.
-        return selectedClientIdForBike!;
+        // "existing" o "generic": selectedClientId ya tiene el id resuelto.
+        return selectedClientId!;
     };
 
     const onSubmit = async (formData: z.infer<typeof serviceSchema>) => {
         let hasErrors = false;
+        const errs: FieldErrors = {};
 
-        if (!hasBike) {
-            // Sin bici: el cliente se valida directo, no hay nada de bicicleta que chequear.
-            if (!validateClientSelection()) hasErrors = true;
-        } else if (bikeMode === "new") {
+        // Mano de obra y fechas: obligatorias según el estado (misma regla que la API).
+        const priceValue = price ?? 0;
+        Object.assign(
+            errs,
+            serviceStatusRuleErrors(effectiveStatus, {
+                price: priceValue,
+                scheduledAt: formData.scheduledAt,
+                deliveryAt: formData.deliveryAt,
+            }),
+        );
+
+        // Cliente → bicicleta
+        if (!validateClientSelection()) {
+            if (clientMode !== "new") errs.client = "Selecciona un cliente";
+            hasErrors = true;
+        }
+        if (clientMode === "generic") {
+            // Bici ocasional: no hay nada que validar.
+        } else if (bikeMode === "new" || clientMode === "new") {
             const bikeResult = newBikeSchema.safeParse(newBike);
             if (!bikeResult.success) {
-                const errs: InlineBikeErrors = {};
+                const bErrs: InlineBikeErrors = {};
                 bikeResult.error.issues.forEach((i) => {
-                    errs[i.path[0] as keyof InlineBikeErrors] = i.message;
+                    bErrs[i.path[0] as keyof InlineBikeErrors] = i.message;
                 });
-                setBikeErrors(errs);
+                setBikeErrors(bErrs);
                 hasErrors = true;
             } else {
                 setBikeErrors({});
             }
-
-            if (!validateClientSelection()) hasErrors = true;
         } else if (!selectedBikeId) {
-            toast.error("Selecciona una bicicleta");
+            errs.bike = "Selecciona una bicicleta";
             hasErrors = true;
         }
 
@@ -367,11 +372,11 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         if (mechanicMode === "new") {
             const mechanicResult = newMechanicSchema.safeParse(newMechanic);
             if (!mechanicResult.success) {
-                const errs: InlineMechanicErrors = {};
+                const mErrs: InlineMechanicErrors = {};
                 mechanicResult.error.issues.forEach((i) => {
-                    errs[i.path[0] as keyof InlineMechanicErrors] = i.message;
+                    mErrs[i.path[0] as keyof InlineMechanicErrors] = i.message;
                 });
-                setMechanicErrors(errs);
+                setMechanicErrors(mErrs);
                 hasErrors = true;
             } else {
                 setMechanicErrors({});
@@ -381,57 +386,57 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
             hasErrors = true;
         }
 
-        if (hasErrors) return;
+        setFieldErrors(errs);
+        if (hasErrors || Object.keys(errs).length > 0) return;
 
         setIsSubmitting(true);
         try {
-            let resolvedClientId = service?.clientId ?? 0;
-            // undefined a propósito: un servicio sin bici no manda bicycleId
-            // (JSON.stringify lo omite del payload, coincide con el opcional del backend).
-            let resolvedBikeId: number | undefined;
             let resolvedMechanicId = selectedMechanicId ?? 0;
+            // null a propósito en cliente ocasional: al editar desasocia la bici anterior.
+            let resolvedBikeId: number | null = null;
 
-            if (!hasBike) {
-                resolvedClientId = await resolveClientId();
-            } else if (bikeMode === "new") {
-                resolvedClientId = await resolveClientId();
+            const resolvedClientId = await resolveClientId();
 
-                const { data: createdBike } = await api.post("/bicycles", {
-                    brand: newBike.brand,
-                    model: newBike.model,
-                    clientId: resolvedClientId,
-                });
-                resolvedBikeId = createdBike.id;
-                queryClient.invalidateQueries({ queryKey: ["bicycles"] });
-            } else {
-                resolvedBikeId = selectedBikeId ?? undefined;
-                const allBikes = bicyclesData?.pages.flatMap((p) => p.data) ?? [];
-                const bike = allBikes.find((b) => b.id === selectedBikeId);
-                resolvedClientId = bike?.clientId ?? service?.clientId ?? 0;
+            if (clientMode !== "generic") {
+                if (bikeMode === "new" || clientMode === "new") {
+                    const { data: createdBike } = await api.post("/bicycles", {
+                        brand: newBike.brand,
+                        model: newBike.model,
+                        clientId: resolvedClientId,
+                    });
+                    resolvedBikeId = createdBike.id;
+                    queryClient.invalidateQueries({ queryKey: ["bicycles"] });
+                } else {
+                    resolvedBikeId = selectedBikeId;
+                }
             }
 
-            // 3. Create mechanic if needed
+            // Create mechanic if needed
             if (mechanicMode === "new") {
                 const { data: createdMechanic } = await api.post("/mechanics", newMechanic);
                 resolvedMechanicId = createdMechanic.id;
                 queryClient.invalidateQueries({ queryKey: ["mechanics"] });
             }
 
-            // 4. Create / update service
+            // Create / update service
             const payload = {
                 description: formData.description,
-                price: parseFloat(formData.price.toString()),
-                scheduledAt: toISOString(formData.scheduledAt),
-                deliveryAt: toISOString(formData.deliveryAt),
+                price: priceValue,
+                // Solo fecha (sin hora), fijada a mediodía local para que ninguna zona horaria cambie el día.
+                scheduledAt: dateInputToIso(formData.scheduledAt),
+                deliveryAt: dateInputToIso(formData.deliveryAt),
                 category: formData.category,
                 isReminderActive: formData.isReminderActive,
+                isUrgent: formData.isUrgent,
+                // Al editar no se toca el estado desde acá (se cambia en el detalle).
+                ...(service ? {} : { status: formData.status }),
                 bicycleId: resolvedBikeId,
                 clientId: resolvedClientId,
                 mechanicId: resolvedMechanicId,
                 parts: parts.map((p) => ({
                     name: p.name,
-                    quantity: Number(p.quantity),
-                    unitPrice: Number(p.unitPrice),
+                    quantity: p.quantity ?? 1,
+                    unitPrice: p.unitPrice ?? 0,
                 })),
             };
 
@@ -441,7 +446,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                 await api.post("/services", payload);
             }
 
-            queryClient.invalidateQueries({ queryKey: ["services"] });
+            invalidateServiceQueries(queryClient);
             toast.success(service ? "Servicio actualizado con éxito" : "Servicio creado con éxito", {
                 className: "bg-green-600 text-white border border-green-700",
             });
@@ -455,33 +460,62 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
         }
     };
 
-    // ── Selector de cliente (compartido: dentro de "bici nueva" y en el flujo sin bici) ──
+    // ── Selector de cliente (siempre visible) ──
 
-    const clientPicker = clientModeForBike === "generic" ? (
+    // El cliente del servicio que se edita puede no estar en las páginas ya cargadas: se agrega para que el select lo muestre.
+    const clientList: Client[] = (() => {
+        const list = clientsData?.pages.flatMap((page) => page.data) ?? [];
+        if (service?.client && !list.some((c) => c.id === service.client!.id)) return [service.client, ...list];
+        return list;
+    })();
+
+    // Bicis del cliente elegido; la del servicio que se edita se agrega si quedó fuera (p. ej. archivada).
+    const bikeList: Bike[] = (() => {
+        const list = clientBikes ?? [];
+        if (service?.bicycle && service.clientId === selectedClientId && !list.some((b) => b.id === service.bicycle!.id)) {
+            return [service.bicycle, ...list];
+        }
+        return list;
+    })();
+
+    const clientPicker = clientMode === "generic" ? (
         <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
             <span className="text-sm font-medium">Cliente Ocasional seleccionado</span>
             <button
                 type="button"
                 className="text-xs text-muted-foreground hover:underline"
                 onClick={() => {
-                    setClientModeForBike("existing");
-                    setSelectedClientIdForBike(null);
+                    setClientMode("existing");
+                    setSelectedClientId(null);
+                    setSelectedBikeId(null);
                 }}
             >
                 Cambiar
             </button>
         </div>
-    ) : clientModeForBike === "existing" ? (
+    ) : clientMode === "existing" ? (
         <div className="space-y-2">
             <Select
-                value={selectedClientIdForBike?.toString() ?? ""}
+                value={selectedClientId?.toString() ?? ""}
                 onValueChange={(val) => {
                     if (val === "NEW") {
-                        setClientModeForBike("new");
-                        setSelectedClientIdForBike(null);
+                        setClientMode("new");
+                        setSelectedClientId(null);
+                        setSelectedBikeId(null);
+                        setBikeMode("new");
                         return;
                     }
-                    setSelectedClientIdForBike(Number(val));
+                    const id = Number(val);
+                    const picked = clientList.find((c) => c.id === id);
+                    setSelectedBikeId(null);
+                    setBikeMode("existing");
+                    if (picked?.isGeneric) {
+                        // El cliente ocasional siempre va con "bici ocasional".
+                        setSelectedClientId(id);
+                        setClientMode("generic");
+                        return;
+                    }
+                    setSelectedClientId(id);
                 }}
             >
                 <SelectTrigger>
@@ -497,14 +531,12 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                     <SelectItem value="NEW" className="text-primary font-medium">
                         + Nuevo Cliente
                     </SelectItem>
-                    {clientsData?.pages.flatMap((page) =>
-                        page.data.map((client: Client) => (
-                            <SelectItem key={client.id} value={client.id.toString()}>
-                                {client.name}
-                                {client.email ? ` — ${client.email}` : ""}
-                            </SelectItem>
-                        )),
-                    )}
+                    {clientList.map((client: Client) => (
+                        <SelectItem key={client.id} value={client.id.toString()}>
+                            {client.name}
+                            {client.email ? ` — ${client.email}` : ""}
+                        </SelectItem>
+                    ))}
                 </SelectContent>
             </Select>
             <button
@@ -523,7 +555,10 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                 <button
                     type="button"
                     className="text-xs text-muted-foreground hover:underline"
-                    onClick={() => setClientModeForBike("existing")}
+                    onClick={() => {
+                        setClientMode("existing");
+                        setBikeMode("existing");
+                    }}
                 >
                     Seleccionar existente
                 </button>
@@ -569,91 +604,40 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-                    {/* ── ¿Bicicleta registrada? ── */}
-                    <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/20 p-3">
-                        <div className="min-w-0">
-                            <div className="text-sm font-medium">¿Es sobre una bicicleta registrada?</div>
-                            <div className="text-xs text-muted-foreground">
-                                Desactivalo para reparaciones sueltas (armar una rueda, etc.) que no requieren registrar una bici.
-                            </div>
-                        </div>
-                        <Switch
-                            checked={hasBike}
-                            onCheckedChange={(checked) => {
-                                setHasBike(checked);
-                                if (!checked) setClientModeForBike("existing");
-                            }}
-                        />
+                    {/* ── Cliente (siempre visible) ── */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium">Cliente</label>
+                        {clientPicker}
+                        {fieldErrors.client && <p className="text-red-500 text-sm">{fieldErrors.client}</p>}
                     </div>
 
-                    {/* ── Bicicleta (o cliente directo si no hay bici) ── */}
-                    {!hasBike ? (
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium">Cliente</label>
-                            {clientPicker}
-                        </div>
-                    ) : (
+                    {/* ── Bicicleta: depende del cliente ── */}
                     <div className="space-y-2">
                         <label className="block text-sm font-medium">Bicicleta</label>
-                        {bikeMode === "existing" ? (
-                            <Select
-                                value={selectedBikeId?.toString() ?? ""}
-                                onValueChange={(val) => {
-                                    if (val === "NEW") {
-                                        setBikeMode("new");
-                                        setSelectedBikeId(null);
-                                        return;
-                                    }
-                                    const id = Number(val);
-                                    setSelectedBikeId(id);
-                                    const bike = bicyclesData?.pages
-                                        .flatMap((p) => p.data)
-                                        .find((b: Bike) => b.id === id);
-                                    if (bike) setValue("price", 0);
-                                }}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona una bicicleta" />
-                                </SelectTrigger>
-                                <SelectContent
-                                    onScroll={(e) => {
-                                        const el = e.currentTarget;
-                                        if (
-                                            el.scrollHeight - el.scrollTop - el.clientHeight <= 1 &&
-                                            hasNextBike
-                                        )
-                                            fetchNextBike();
-                                    }}
-                                >
-                                    <SelectItem value="NEW" className="text-primary font-medium">
-                                        + Nueva Bicicleta
-                                    </SelectItem>
-                                    {bicyclesData?.pages.flatMap((page) =>
-                                        page.data.map((bike: Bike) => (
-                                            <SelectItem key={bike.id} value={bike.id.toString()}>
-                                                {bike.brand} — {bike.model}
-                                            </SelectItem>
-                                        )),
-                                    )}
-                                </SelectContent>
-                            </Select>
-                        ) : (
+                        {clientMode === "generic" ? (
+                            <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+                                <span className="font-medium">Bici ocasional</span>
+                                <span className="text-muted-foreground"> — sin bicicleta registrada</span>
+                            </div>
+                        ) : clientMode === "new" || bikeMode === "new" ? (
                             <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm font-medium text-primary">Nueva Bicicleta</span>
-                                    <button
-                                        type="button"
-                                        className="text-xs text-muted-foreground hover:underline"
-                                        onClick={() => setBikeMode("existing")}
-                                    >
-                                        Seleccionar existente
-                                    </button>
+                                    {clientMode === "existing" && (
+                                        <button
+                                            type="button"
+                                            className="text-xs text-muted-foreground hover:underline"
+                                            onClick={() => setBikeMode("existing")}
+                                        >
+                                            Seleccionar existente
+                                        </button>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium mb-1">Marca</label>
                                     <Input
                                         value={newBike.brand}
-                                        onChange={(e) => setNewBike((b) => ({ ...b, brand: e.target.value }))}
+                                        onChange={(e) => setNewBike((bk) => ({ ...bk, brand: e.target.value }))}
                                         placeholder="Ej: Trek"
                                     />
                                     {bikeErrors.brand && (
@@ -664,23 +648,50 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                     <label className="block text-xs font-medium mb-1">Modelo</label>
                                     <Input
                                         value={newBike.model}
-                                        onChange={(e) => setNewBike((b) => ({ ...b, model: e.target.value }))}
+                                        onChange={(e) => setNewBike((bk) => ({ ...bk, model: e.target.value }))}
                                         placeholder="Ej: Marlin 5"
                                     />
                                     {bikeErrors.model && (
                                         <p className="text-red-500 text-xs mt-1">{bikeErrors.model}</p>
                                     )}
                                 </div>
-
-                                {/* Cliente para la bicicleta */}
-                                <div>
-                                    <label className="block text-xs font-medium mb-1">Cliente de la bicicleta</label>
-                                    {clientPicker}
-                                </div>
                             </div>
+                        ) : (
+                            <Select
+                                value={selectedBikeId?.toString() ?? ""}
+                                onValueChange={(val) => {
+                                    if (val === "NEW") {
+                                        setBikeMode("new");
+                                        setSelectedBikeId(null);
+                                        return;
+                                    }
+                                    setSelectedBikeId(Number(val));
+                                }}
+                                disabled={selectedClientId === null}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue
+                                        placeholder={
+                                            selectedClientId === null
+                                                ? "Selecciona primero un cliente"
+                                                : "Selecciona una bicicleta"
+                                        }
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="NEW" className="text-primary font-medium">
+                                        + Crear bicicleta
+                                    </SelectItem>
+                                    {bikeList.map((bike: Bike) => (
+                                        <SelectItem key={bike.id} value={bike.id.toString()}>
+                                            {bike.brand} — {bike.model}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         )}
+                        {fieldErrors.bike && <p className="text-red-500 text-sm">{fieldErrors.bike}</p>}
                     </div>
-                    )}
 
                     {/* ── Mecánico ── */}
                     <div className="space-y-2">
@@ -751,6 +762,46 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                         )}
                     </div>
 
+                    {/* ── Estado inicial (solo al crear) + Urgente ── */}
+                    <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+                        {!service && (
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">Estado inicial</label>
+                                <Select
+                                    value={watch("status")}
+                                    onValueChange={(val) =>
+                                        setValue("status", val as ServiceStatus, { shouldDirty: true })
+                                    }
+                                >
+                                    <SelectTrigger className="bg-background">
+                                        <SelectValue placeholder="Selecciona un estado" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {CREATABLE_STATUSES.map((st) => (
+                                            <SelectItem key={st} value={st}>
+                                                {ServiceStatusLabels[st]}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="text-sm font-medium">Urgente</div>
+                                <div className="text-xs text-muted-foreground">
+                                    Se marca en rojo en el calendario mientras el trabajo siga abierto.
+                                </div>
+                            </div>
+                            <Switch
+                                checked={watchedUrgent}
+                                onCheckedChange={(checked) =>
+                                    setValue("isUrgent", checked, { shouldDirty: true })
+                                }
+                            />
+                        </div>
+                    </div>
+
                     {/* ── Categoría + Recordatorio ── */}
                     <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
                         <div className="space-y-2">
@@ -807,16 +858,16 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium">Fecha programada</label>
-                            <Input type="datetime-local" {...register("scheduledAt")} className="w-full" />
-                            {errors.scheduledAt && (
-                                <p className="text-red-500 text-sm">{errors.scheduledAt.message}</p>
+                            <Input type="date" {...register("scheduledAt")} className="w-full" />
+                            {fieldErrors.scheduledAt && (
+                                <p className="text-red-500 text-sm">{fieldErrors.scheduledAt}</p>
                             )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium">Fecha de entrega</label>
-                            <Input type="datetime-local" {...register("deliveryAt")} className="w-full" />
-                            {errors.deliveryAt && (
-                                <p className="text-red-500 text-sm">{errors.deliveryAt.message}</p>
+                            <Input type="date" {...register("deliveryAt")} className="w-full" />
+                            {fieldErrors.deliveryAt && (
+                                <p className="text-red-500 text-sm">{fieldErrors.deliveryAt}</p>
                             )}
                         </div>
                     </div>
@@ -862,29 +913,23 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                                             className="col-span-5"
                                             placeholder="Frenos Shimano"
                                             value={part.name}
-                                            onChange={(e) => updatePart(i, "name", e.target.value)}
+                                            onChange={(e) => updatePart(i, { name: e.target.value })}
                                         />
-                                        <Input
+                                        <NumericInput
                                             className="col-span-2"
-                                            inputMode="numeric"
                                             placeholder="1"
-                                            value={String(part.quantity)}
-                                            onChange={(e) => {
-                                                const next = e.target.value.replace(/[^\d]/g, "");
-                                                updatePart(i, "quantity", next === "" ? 1 : Number(next));
-                                            }}
+                                            value={part.quantity}
+                                            onValueChange={(v) => updatePart(i, { quantity: v })}
+                                            emptyValue={1}
+                                            min={1}
                                         />
-                                        <Input
+                                        <NumericInput
                                             className="col-span-3"
-                                            inputMode="decimal"
+                                            decimal
                                             placeholder="0.00"
-                                            value={String(part.unitPrice)}
-                                            onChange={(e) => {
-                                                const next = e.target.value.replace(/[^\d.,]/g, "");
-                                                const normalized = next.replace(",", ".");
-                                                const parsed = normalized === "" ? 0 : Number(normalized);
-                                                updatePart(i, "unitPrice", Number.isFinite(parsed) ? parsed : 0);
-                                            }}
+                                            value={part.unitPrice}
+                                            onValueChange={(v) => updatePart(i, { unitPrice: v })}
+                                            emptyValue={0}
                                         />
                                         <Button
                                             className="col-span-2"
@@ -904,29 +949,15 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                     {/* ── Precio ── */}
                     <div>
                         <label className="block text-sm font-medium">Mano de obra</label>
-                        <Input
-                            inputMode="decimal"
+                        <NumericInput
+                            decimal
                             placeholder="Ej: 1200.50"
-                            value={priceInput}
-                            onChange={(e) => {
-                                const next = e.target.value.replace(/[^\d.,]/g, "");
-                                setPriceInput(next);
-
-                                // Normaliza: acepta "," o "." como separador decimal (usa ".")
-                                const normalized = next.replace(",", ".");
-                                const parsed = normalized === "" ? 0 : Number(normalized);
-                                setValue("price", Number.isFinite(parsed) ? parsed : 0, { shouldValidate: true });
-                            }}
-                            onBlur={() => {
-                                const normalized = priceInput.replace(",", ".");
-                                const parsed = normalized === "" ? 0 : Number(normalized);
-                                if (Number.isFinite(parsed)) {
-                                    setPriceInput(parsed === 0 ? "" : String(parsed));
-                                }
-                            }}
+                            value={price}
+                            onValueChange={setPrice}
+                            emptyValue={0}
                         />
-                        {errors.price && (
-                            <p className="text-red-500 text-sm">{errors.price.message}</p>
+                        {fieldErrors.price && (
+                            <p className="text-red-500 text-sm">{fieldErrors.price}</p>
                         )}
                     </div>
 
@@ -935,11 +966,11 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                         <span className="text-sm font-medium">Total a cobrar</span>
                         <div className="text-right">
                             <span className="text-lg font-bold">
-                                {formatCurrency((watch("price") || 0) + totalParts)}
+                                {formatCurrency((price ?? 0) + totalParts)}
                             </span>
                             {totalParts > 0 && (
                                 <p className="text-xs text-muted-foreground">
-                                    {formatCurrency(watch("price") || 0)} + {formatCurrency(totalParts)} en repuestos
+                                    {formatCurrency(price ?? 0)} + {formatCurrency(totalParts)} en repuestos
                                 </p>
                             )}
                         </div>

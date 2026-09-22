@@ -13,8 +13,9 @@ import { Input } from "@/components/ui/input";
 import { DeleteModal } from "@/components/ui/DeleteModal";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "react-toastify";
-import { StatsOverview, RevenueStats, ExpenseStats, ServicesByStatus, TopClientItem } from "@/lib/types";
-import { ExpenseCategoryLabels } from "@/lib/enums";
+import { StatsOverview, RevenueStats, ExpenseStats, ServicesByStatus, TopClientItem, RevenueByPaymentMethod } from "@/lib/types";
+import { ExpenseCategoryLabels, PaymentMethod, PaymentMethodLabels, ServiceStatus, ServiceStatusLabels } from "@/lib/enums";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 
 type UpcomingService = {
@@ -133,21 +134,25 @@ export default function DashboardOverview() {
     const [upcomingTab, setUpcomingTab] = useState<UpcomingTab>("todos");
     const [appliedFrom, setAppliedFrom] = useState("");
     const [appliedTo, setAppliedTo] = useState("");
+    // Filtro por método de pago ("ALL" = todos); igual que las fechas, se aplica con "Aplicar filtros".
+    const [method, setMethod] = useState("ALL");
+    const [appliedMethod, setAppliedMethod] = useState("ALL");
+    const methodExtra: Record<string, string> = appliedMethod === "ALL" ? {} : { paymentMethod: appliedMethod };
 
     const { data: overview, isLoading: overviewLoading } = useQuery<StatsOverview>({
         // Las tarjetas comparten el filtro con los gráficos; si no, arriba se ve
         // el histórico y abajo el período, y parece que los números no cierran.
-        queryKey: ["stats-overview", appliedFrom, appliedTo],
+        queryKey: ["stats-overview", appliedFrom, appliedTo, appliedMethod],
         queryFn: async () => {
-            const { data } = await api.get(`/statistics/overview${buildStatsQuery(appliedFrom, appliedTo)}`);
+            const { data } = await api.get(`/statistics/overview${buildStatsQuery(appliedFrom, appliedTo, methodExtra)}`);
             return data;
         },
     });
 
     const { data: revenue, isLoading: revenueLoading } = useQuery<RevenueStats>({
-        queryKey: ["stats-revenue", appliedFrom, appliedTo],
+        queryKey: ["stats-revenue", appliedFrom, appliedTo, appliedMethod],
         queryFn: async () => {
-            const { data } = await api.get(`/statistics/revenue${buildStatsQuery(appliedFrom, appliedTo)}`);
+            const { data } = await api.get(`/statistics/revenue${buildStatsQuery(appliedFrom, appliedTo, methodExtra)}`);
             return data;
         },
     });
@@ -169,10 +174,20 @@ export default function DashboardOverview() {
     });
 
     const { data: topClients, isLoading: topClientsLoading } = useQuery<TopClientItem[]>({
-        queryKey: ["stats-top-clients", appliedFrom, appliedTo],
+        queryKey: ["stats-top-clients", appliedFrom, appliedTo, appliedMethod],
         queryFn: async () => {
             const { data } = await api.get(
-                `/statistics/top-clients${buildStatsQuery(appliedFrom, appliedTo, { limit: "5" })}`,
+                `/statistics/top-clients${buildStatsQuery(appliedFrom, appliedTo, { limit: "5", ...methodExtra })}`,
+            );
+            return data;
+        },
+    });
+
+    const { data: byMethod, isLoading: byMethodLoading } = useQuery<RevenueByPaymentMethod>({
+        queryKey: ["stats-revenue-by-method", appliedFrom, appliedTo, appliedMethod],
+        queryFn: async () => {
+            const { data } = await api.get(
+                `/statistics/revenue-by-payment-method${buildStatsQuery(appliedFrom, appliedTo, methodExtra)}`,
             );
             return data;
         },
@@ -197,11 +212,12 @@ export default function DashboardOverview() {
     const handleApplyFilters = () => {
         setAppliedFrom(dateFrom);
         setAppliedTo(dateTo);
+        setAppliedMethod(method);
     };
 
     const handleExport = async () => {
         try {
-            const response = await api.get(`/statistics/export${buildStatsQuery(appliedFrom, appliedTo)}`, {
+            const response = await api.get(`/statistics/export${buildStatsQuery(appliedFrom, appliedTo, methodExtra)}`, {
                 responseType: "blob",
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -280,12 +296,16 @@ export default function DashboardOverview() {
     })();
 
     const statusChartData = byStatus
-        ? [
-              { name: "En progreso", value: byStatus.IN_PROGRESS ?? 0 },
-              { name: "Completados", value: byStatus.COMPLETED ?? 0 },
-              { name: "Cancelados", value: byStatus.CANCELED ?? 0 },
-          ]
+        ? Object.values(ServiceStatus).map((st) => ({
+              name: ServiceStatusLabels[st],
+              value: byStatus[st] ?? 0,
+          }))
         : [];
+
+    const methodChartData = (byMethod?.methods ?? []).map((m) => ({
+        name: PaymentMethodLabels[m.method as PaymentMethod] ?? m.method,
+        value: m.total,
+    }));
 
     const expensesByCategoryChartData = expenses
         ? Object.entries(expenses.byCategory).map(([key, value]) => ({
@@ -323,10 +343,49 @@ export default function DashboardOverview() {
                         className="w-full sm:w-40"
                     />
                 </div>
+                <div className="w-full min-w-0 sm:w-auto">
+                    <label className="mb-1 block text-sm font-medium">Método de pago</label>
+                    <Select value={method} onValueChange={setMethod}>
+                        <SelectTrigger className="w-full sm:w-48">
+                            <SelectValue placeholder="Todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Todos los métodos</SelectItem>
+                            {Object.values(PaymentMethod).map((m) => (
+                                <SelectItem key={m} value={m}>{PaymentMethodLabels[m]}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
                 <Button onClick={handleApplyFilters}>Aplicar filtros</Button>
                 <Button variant="outline" onClick={handleExport} className="inline-flex items-center gap-2">
                     <Download size={16} aria-hidden /> Exportar Excel
                 </Button>
+            </div>
+
+            {/* Ingresos por método de pago */}
+            <div className="min-w-0 rounded-xl border bg-card p-4 sm:p-5">
+                <h2 className="text-lg font-semibold">Ingresos por método de pago</h2>
+                {byMethodLoading ? (
+                    <div className="mt-3 text-sm text-muted-foreground">Cargando...</div>
+                ) : (
+                    <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                        {(byMethod?.methods ?? []).map((m) => (
+                            <div key={m.method} className="rounded-lg border bg-background/70 p-3">
+                                <p className="text-sm text-muted-foreground">
+                                    {PaymentMethodLabels[m.method as PaymentMethod] ?? m.method}
+                                </p>
+                                <p className="text-lg font-bold">{formatCurrency(m.total)}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    {m.count} {m.count === 1 ? "servicio" : "servicios"}
+                                    {byMethod && byMethod.totalRevenue > 0
+                                        ? ` · ${Math.round((m.total / byMethod.totalRevenue) * 100)}%`
+                                        : ""}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Charts */}
@@ -351,6 +410,17 @@ export default function DashboardOverview() {
                         data={statusChartData}
                         title="Servicios por estado"
                         label="Cantidad"
+                    />
+                )}
+                {byMethodLoading ? (
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">
+                        Cargando métodos de pago...
+                    </div>
+                ) : (
+                    <CustomBarChart
+                        data={methodChartData}
+                        title="Ingresos por método de pago"
+                        label="Ingresos"
                     />
                 )}
                 {expensesLoading ? (

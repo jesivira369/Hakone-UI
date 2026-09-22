@@ -5,7 +5,15 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import api from "@/lib/axiosInstance";
 import { Service } from "@/lib/types";
-import { ServiceStatus, ServiceStatusLabels } from "@/lib/enums";
+import {
+    ServiceStatus,
+    ServiceStatusLabels,
+    ServiceStatusStyles,
+    URGENT_STYLE,
+    getServiceDisplayStyle,
+    isUrgentActive,
+    getServiceStatusLabel,
+} from "@/lib/enums";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -54,20 +62,6 @@ function getCalendarDays(year: number, month: number): (Date | null)[] {
     while (cells.length < 42) cells.push(null);
     return cells;
 }
-
-const statusStyles: Record<string, string> = {
-    [ServiceStatus.SCHEDULED]: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200",
-    [ServiceStatus.IN_PROGRESS]: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
-    [ServiceStatus.COMPLETED]: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200",
-    [ServiceStatus.CANCELED]: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
-
-const statusDot: Record<string, string> = {
-    [ServiceStatus.SCHEDULED]: "bg-sky-500",
-    [ServiceStatus.IN_PROGRESS]: "bg-amber-500",
-    [ServiceStatus.COMPLETED]: "bg-green-500",
-    [ServiceStatus.CANCELED]: "bg-gray-500",
-};
 
 export default function CalendarPage() {
     const router = useRouter();
@@ -194,6 +188,21 @@ export default function CalendarPage() {
                 </div>
             </div>
 
+            {/* Leyenda de colores */}
+            <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-border bg-card px-3 py-2 text-xs" aria-label="Leyenda de colores">
+                {Object.values(ServiceStatus).map((st) => (
+                    <span key={st} className="inline-flex items-center gap-1.5">
+                        <span className={`h-2.5 w-2.5 rounded-full ${ServiceStatusStyles[st].dot}`} aria-hidden />
+                        {ServiceStatusLabels[st]}
+                    </span>
+                ))}
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                    <span className={`h-2.5 w-2.5 rounded-full ${URGENT_STYLE.dot}`} aria-hidden />
+                    Urgente
+                    <span className="font-normal text-muted-foreground">(solo mientras esté activo)</span>
+                </span>
+            </div>
+
             {/* Grid del mes: misma estructura con o sin servicios */}
             {isLoading ? (
                 <div
@@ -258,11 +267,11 @@ export default function CalendarPage() {
                                                 {dayServicesList.slice(0, 2).map((s) => (
                                                     <div
                                                         key={s.id}
-                                                        className={`flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-[10px] leading-tight sm:text-xs ${statusStyles[s.status] ?? "bg-muted text-muted-foreground"}`}
+                                                        className={`flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-[10px] leading-tight sm:text-xs ${getServiceDisplayStyle(s).badge}`}
                                                         title={s.description}
                                                     >
                                                         <span
-                                                            className={`h-2 w-2 shrink-0 rounded-full ${statusDot[s.status] ?? "bg-muted-foreground"}`}
+                                                            className={`h-2 w-2 shrink-0 rounded-full ${isUrgentActive(s) ? "bg-white" : getServiceDisplayStyle(s).dot}`}
                                                             aria-hidden
                                                         />
                                                         <span className="min-w-0 flex-1 text-center line-clamp-2 break-words">
@@ -310,19 +319,25 @@ export default function CalendarPage() {
                                             <p className="text-sm font-medium line-clamp-2">{s.description}</p>
                                             <p className="mt-1 text-xs text-muted-foreground">
                                                 {s.client?.name ?? "—"} ·{" "}
-                                                {s.bicycle ? `${s.bicycle.brand} ${s.bicycle.model}` : "—"}
+                                                {s.bicycle ? `${s.bicycle.brand} ${s.bicycle.model}` : "Bici ocasional"}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
                                                 {s.mechanic?.name ?? "—"} · {formatCurrency(s.price)}
                                             </p>
                                         </div>
 
-                                        <span
-                                            className={`shrink-0 rounded-full px-2 py-1 text-xs ${statusStyles[s.status] ?? "bg-muted"
-                                                }`}
-                                        >
-                                            {ServiceStatusLabels[s.status as ServiceStatus] ?? s.status}
-                                        </span>
+                                        <div className="flex shrink-0 flex-col items-end gap-1">
+                                            <span
+                                                className={`rounded-full px-2 py-1 text-xs ${getServiceDisplayStyle(s).badge}`}
+                                            >
+                                                {getServiceStatusLabel(s.status)}
+                                            </span>
+                                            {s.isUrgent && (
+                                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${URGENT_STYLE.badge}`}>
+                                                    Urgente
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <Button

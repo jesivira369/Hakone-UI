@@ -68,6 +68,21 @@ TanStack Query para todo lo que viene de la API. No metas datos del servidor en
 al cliente es la suma. Usá `serviceTotal()` / `partsTotal()` de
 `lib/utils/serviceTotal.ts` en cualquier lugar que muestre "el total".
 
+### Estados, cobro y colores de un servicio
+
+Los 8 estados, sus etiquetas y sus colores viven **solo** en
+`lib/enums/serviceStatus.ts` (`ServiceStatusStyles`, `getServiceDisplayStyle`);
+listado, detalle, calendario, dashboard y ficha de bici los consumen de ahí. El
+rojo está reservado a "urgente" y solo se aplica mientras el servicio sigue
+abierto (`isUrgentActive`). Las clases de Tailwind están en `lib/`, por eso
+`tailwind.config.ts` incluye `./lib/**` en `content`.
+
+`PAID` (Completado y pagado) se alcanza **solo** desde `CheckoutModal` (monto +
+método de pago → `POST /services/:id/pay`). Los inputs numéricos del formulario de
+servicio usan `NumericInput` (permite vaciar mientras se edita). Al modificar un
+servicio, invalidá con `invalidateServiceQueries()` (detalle, listados,
+calendario y `stats-*`). Specs en `Hakone-API/docs/specs/`.
+
 ### Suscripción vencida
 
 `app/(dashboard)/layout.tsx` muestra `SubscriptionExpiredScreen` cuando

@@ -13,7 +13,17 @@ import { Eye, Edit, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { DeleteModal } from "@/components/ui/DeleteModal";
-import { ServiceStatus, ServiceStatusLabels } from "@/lib/enums";
+import {
+    PaymentMethod,
+    PaymentMethodLabels,
+    ServiceStatus,
+    ServiceStatusLabels,
+    URGENT_STYLE,
+    getPaymentMethodLabel,
+    getServiceStatusLabel,
+    getServiceStatusStyle,
+} from "@/lib/enums";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 import { toast } from "react-toastify";
 import { TableSkeleton } from "@/components/ui/Skeleton/TableSkeleton";
@@ -30,16 +40,22 @@ export default function ServicesPage() {
     const [limit, setLimit] = useState(10);
     const [sortBy, setSortBy] = useState("createdAt");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+    const [statusFilter, setStatusFilter] = useState<string>("ALL");
+    const [methodFilter, setMethodFilter] = useState<string>("ALL");
+    const [urgentOnly, setUrgentOnly] = useState(false);
 
-    useEffect(() => { setPage(1); }, [debouncedSearch]);
+    useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter, methodFilter, urgentOnly]);
 
     const { data: servicesData, isLoading, error } = useQuery({
-        queryKey: ["services", page, limit, debouncedSearch, sortBy, sortOrder],
+        queryKey: ["services", page, limit, debouncedSearch, sortBy, sortOrder, statusFilter, methodFilter, urgentOnly],
         queryFn: async () => {
             const params = new URLSearchParams({ page: String(page), limit: String(limit) });
             if (debouncedSearch) params.set("search", debouncedSearch);
             if (sortBy) params.set("sortBy", sortBy);
             if (sortOrder) params.set("sortOrder", sortOrder);
+            if (statusFilter !== "ALL") params.set("status", statusFilter);
+            if (methodFilter !== "ALL") params.set("paymentMethod", methodFilter);
+            if (urgentOnly) params.set("isUrgent", "true");
             const { data } = await api.get(`/services?${params.toString()}`);
             return data;
         },
@@ -80,7 +96,7 @@ export default function ServicesPage() {
                 const bike = row.original.bicycle;
                 return (
                     <div>
-                        {bike ? `${bike.brand} ${bike.model}` : "—"}
+                        {bike ? `${bike.brand} ${bike.model}` : "Bici ocasional"}
                     </div>
                 );
             },
@@ -116,10 +132,23 @@ export default function ServicesPage() {
             header: "Estado",
             enableSorting: true,
             cell: ({ row }) => (
-                <span>
-                    {ServiceStatusLabels[row.original.status as ServiceStatus] || "Desconocido"}
-                </span>
+                <div className="flex flex-wrap items-center gap-1">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getServiceStatusStyle(row.original.status).badge}`}>
+                        {getServiceStatusLabel(row.original.status)}
+                    </span>
+                    {row.original.isUrgent && (
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${URGENT_STYLE.badge}`}>
+                            Urgente
+                        </span>
+                    )}
+                </div>
             ),
+        },
+        {
+            id: "paymentMethod",
+            header: "Método de pago",
+            enableSorting: false,
+            cell: ({ row }) => getPaymentMethodLabel(row.original.paymentMethod),
         },
         {
             id: "mechanic.name",
@@ -173,6 +202,34 @@ export default function ServicesPage() {
                     className="w-full min-w-0 sm:max-w-xs"
                 />
                 <Button className="shrink-0" onClick={() => { setSelectedService(null); setModalOpen(true); }}>Nuevo Servicio</Button>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-52">
+                        <SelectValue placeholder="Estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="ALL">Todos los estados</SelectItem>
+                        {Object.values(ServiceStatus).map((st) => (
+                            <SelectItem key={st} value={st}>{ServiceStatusLabels[st]}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select value={methodFilter} onValueChange={setMethodFilter}>
+                    <SelectTrigger className="w-full sm:w-52">
+                        <SelectValue placeholder="Método de pago" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="ALL">Todos los métodos</SelectItem>
+                        {Object.values(PaymentMethod).map((m) => (
+                            <SelectItem key={m} value={m}>{PaymentMethodLabels[m]}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={urgentOnly} onChange={(e) => setUrgentOnly(e.target.checked)} />
+                    Solo urgentes
+                </label>
             </div>
             <DataTable
                 columns={columns}

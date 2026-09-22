@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Edit, Eye } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { getServiceStatusLabel, getServiceStatusStyle } from "@/lib/enums";
 import { BicycleModal } from "@/components/ui/BikeModal";
 import { DetailsSkeleton } from "@/components/ui/Skeleton/DetailsSkeleton";
 
@@ -57,8 +58,8 @@ export default function BikeDetailPage() {
             accessorKey: "status",
             header: "Estado",
             cell: ({ row }) => (
-                <span className={`px-2 py-1 rounded-md text-white ${row.original.status === "COMPLETED" ? "bg-green-500" : row.original.status === "IN_PROGRESS" ? "bg-yellow-500" : "bg-red-500"}`}>
-                    {row.original.status === "COMPLETED" ? "Completado" : row.original.status === "IN_PROGRESS" ? "En progreso" : "Cancelado"}
+                <span className={`px-2 py-1 rounded-md text-xs font-medium ${getServiceStatusStyle(row.original.status).badge}`}>
+                    {getServiceStatusLabel(row.original.status)}
                 </span>
             ),
         },

@@ -1,0 +1,34 @@
+import type { MetadataRoute } from "next";
+
+const siteUrl = "https://hakoneservice.com";
+
+export default function sitemap(): MetadataRoute.Sitemap {
+  const now = new Date();
+
+  return [
+    {
+      url: siteUrl,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 1,
+    },
+    {
+      url: `${siteUrl}/login`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.3,
+    },
+    {
+      url: `${siteUrl}/privacidad`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${siteUrl}/terminos`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+  ];
+}

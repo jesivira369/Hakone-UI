@@ -6,7 +6,11 @@
 // de las rutas del filesystem, así que el route handler siempre ganaba. Mantener
 // las dos definiciones solo servía para que divergieran (apuntaban a puertos
 // distintos) y para hacer creer que tocar esta config cambiaba algo.
-const nextConfig = {};
+const nextConfig = {
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
+};
 
 module.exports = nextConfig;
 

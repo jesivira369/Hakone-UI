@@ -1,7 +1,7 @@
 import { Bike } from "./bikes";
 import { Client } from "./client";
 import { Mechanic } from "./mechanic";
-import { ServiceCategory } from "@/lib/enums";
+import { PaymentMethod, ServiceCategory } from "@/lib/enums";
 
 export interface ServicePart {
   id: number;
@@ -24,6 +24,10 @@ export interface Service {
   status: string;
   category: ServiceCategory;
   isReminderActive: boolean;
+  isUrgent?: boolean;
+  paidAt?: string | null;
+  paidAmount?: number | null;
+  paymentMethod?: PaymentMethod | null;
   scheduledReminderDate?: string | null;
   bicycle?: Bike | null;
   clientId: number;

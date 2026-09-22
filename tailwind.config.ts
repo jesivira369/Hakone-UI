@@ -6,6 +6,8 @@ export default {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    // Los colores de estado (bg-violet-100, etc.) viven en lib/enums: sin esto Tailwind no genera las clases.
+    "./lib/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {

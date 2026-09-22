@@ -46,10 +46,26 @@ export interface NetIncomeStats {
 }
 
 export interface ServicesByStatus {
+  IN_REVIEW: number;
+  QUOTED: number;
+  SCHEDULED: number;
   IN_PROGRESS: number;
   COMPLETED: number;
+  PAID: number;
+  BLOCKED: number;
   CANCELED: number;
   total: number;
+}
+
+export interface RevenueByMethodItem {
+  method: "CASH" | "CARD" | "TRANSFER" | "ELECTRONIC";
+  total: number;
+  count: number;
+}
+
+export interface RevenueByPaymentMethod {
+  methods: RevenueByMethodItem[];
+  totalRevenue: number;
 }
 
 export interface TopClientItem {

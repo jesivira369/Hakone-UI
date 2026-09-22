@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Service } from "@/lib/types";
-import { ServiceCategoryLabels, ServiceStatus } from "@/lib/enums";
+import { ServiceCategoryLabels, ServiceStatus, getPaymentMethodLabel, getServiceStatusLabel, getServiceStatusStyle, URGENT_STYLE } from "@/lib/enums";
 import { formatCurrency, formatDate, partsTotal as calcPartsTotal, serviceTotal } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,8 +83,18 @@ export default function ServiceDetails() {
                     <div>
                         <p className="text-gray-500">Descripción:</p>
                         <p className="font-medium">{service.description}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getServiceStatusStyle(service.status).badge}`}>
+                                {getServiceStatusLabel(service.status)}
+                            </span>
+                            {service.isUrgent && (
+                                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${URGENT_STYLE.badge}`}>
+                                    Urgente
+                                </span>
+                            )}
+                        </div>
                     </div>
-                    <ServiceStatusUpdater serviceId={service.id} currentStatus={service.status as ServiceStatus} />
+                    <ServiceStatusUpdater service={service} />
 
                     <div>
                         <p className="text-gray-500">Mano de obra:</p>
@@ -102,6 +112,20 @@ export default function ServiceDetails() {
                     <div>
                         <p className="text-gray-500">Categoría:</p>
                         <p className="font-medium">{ServiceCategoryLabels[service.category] ?? "—"}</p>
+                    </div>
+                    <div>
+                        <p className="text-gray-500">Bicicleta:</p>
+                        <p className="font-medium">
+                            {service.bicycle ? `${service.bicycle.brand} ${service.bicycle.model}` : "Bici ocasional"}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-gray-500">Fecha programada:</p>
+                        <p className="font-medium">{service.scheduledAt ? formatDate(service.scheduledAt) : "Sin definir"}</p>
+                    </div>
+                    <div>
+                        <p className="text-gray-500">Fecha de entrega:</p>
+                        <p className="font-medium">{service.deliveryAt ? formatDate(service.deliveryAt) : "Sin definir"}</p>
                     </div>
                     <div>
                         <p className="text-gray-500">Fecha de Creación:</p>
@@ -122,6 +146,28 @@ export default function ServiceDetails() {
                     </div>
                 </CardContent>
             </Card>
+
+            {service.status === ServiceStatus.PAID && (
+                <Card className="overflow-hidden rounded-xl shadow-md">
+                    <CardHeader>
+                        <CardTitle>Pago</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div>
+                            <p className="text-gray-500">Monto cobrado:</p>
+                            <p className="font-semibold">{formatCurrency(service.paidAmount ?? serviceTotal(service))}</p>
+                        </div>
+                        <div>
+                            <p className="text-gray-500">Método de pago:</p>
+                            <p className="font-medium">{getPaymentMethodLabel(service.paymentMethod)}</p>
+                        </div>
+                        <div>
+                            <p className="text-gray-500">Fecha de cobro:</p>
+                            <p className="font-medium">{service.paidAt ? formatDate(service.paidAt) : "—"}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {service.parts && service.parts.length > 0 && (
                 <Card className="overflow-hidden rounded-xl shadow-md">

@@ -48,7 +48,7 @@ export function buildWhatsAppReceiptMessage(opts: {
   const when = opts.deliveryAt
     ? ` Entrega estimada: ${new Date(opts.deliveryAt).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })}.`
     : "";
-  return `Hola ${name}! Recibimos tu ${bike} en ${shop}. Orden ${formatFolio(opts.number)}${desc ? `: ${desc}` : ""}.${when} Seguí el estado acá: ${opts.url}`;
+  return `Hola ${name}! Recibimos tu ${bike} en ${shop}. Orden ${formatFolio(opts.number)}${desc ? `: ${desc}` : ""}.${when} Sigue el estado aquí: ${opts.url}`;
 }
 
 export function buildWaMeLink(opts: {

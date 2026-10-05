@@ -39,8 +39,8 @@ export function ServiceCreatedDialog({ service, onClose }: { service: Service; o
                 </DialogHeader>
                 <p className="text-sm text-muted-foreground">
                     {shareable
-                        ? "Mandale el comprobante al cliente: tiene el número de orden y un enlace para seguir el estado de su bici."
-                        : "El Cliente Ocasional no recibe comprobante. Anotá el número de orden para identificar la bici."}
+                        ? "Envía el comprobante al cliente: tiene el número de orden y un enlace para seguir el estado de su bici."
+                        : "El Cliente Ocasional no recibe comprobante. Anota el número de orden para identificar la bici."}
                 </p>
                 <DialogFooter className="gap-2 sm:gap-2">
                     {shareable && (

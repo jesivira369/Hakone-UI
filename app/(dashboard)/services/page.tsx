@@ -199,7 +199,7 @@ function ServicesContent() {
             enableSorting: true,
             cell: ({ row }) =>
                 row.original.pickedUpAt ? (
-                    // La fecha exacta se ve en el detalle; acá solo el estado (tooltip con la fecha).
+                    // La fecha exacta se ve en el detalle; aquí solo el estado (tooltip con la fecha).
                     <span
                         className="whitespace-nowrap rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
                         title={`Retirada el ${formatDate(row.original.pickedUpAt)}`}

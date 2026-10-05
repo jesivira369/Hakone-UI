@@ -158,7 +158,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     const watchedCategory = (watch("category") as ServiceCategory | undefined) ?? ServiceCategory.REPARACION_PUNTUAL;
     const watchedReminder = Boolean(watch("isReminderActive"));
     const watchedUrgent = Boolean(watch("isUrgent"));
-    // Al editar no se cambia el estado desde acá (eso se hace en el detalle); las reglas usan el estado actual.
+    // Al editar no se cambia el estado desde aquí (eso se hace en el detalle); las reglas usan el estado actual.
     const effectiveStatus: string = service ? service.status : (watch("status") as string);
 
     // No hay envío automático: el aviso aparece en el dashboard para contactar al cliente.
@@ -430,7 +430,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                 category: formData.category,
                 isReminderActive: formData.isReminderActive,
                 isUrgent: formData.isUrgent,
-                // Al editar no se toca el estado desde acá (se cambia en el detalle).
+                // Al editar no se toca el estado desde aquí (se cambia en el detalle).
                 ...(service ? {} : { status: formData.status }),
                 bicycleId: resolvedBikeId,
                 clientId: resolvedClientId,

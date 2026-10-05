@@ -9,11 +9,11 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Seguimiento de tu bici",
-  description: "Mirá el estado de tu bicicleta en el taller.",
+  description: "Mira el estado de tu bicicleta en el taller.",
   robots: { index: false, follow: false },
   openGraph: {
     title: "Seguimiento de tu bici",
-    description: "Mirá el estado de tu bicicleta en el taller.",
+    description: "Mira el estado de tu bicicleta en el taller.",
     type: "website",
   },
 };
@@ -98,7 +98,7 @@ export default async function TrackingPage({ params }: { params: Promise<{ code:
         <div className="rounded-2xl border bg-card p-6 text-center shadow-sm">
           <Bike className="mx-auto mb-3 h-8 w-8 text-muted-foreground" aria-hidden />
           <h1 className="text-lg font-semibold">Este enlace ya no está disponible</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Pedile uno nuevo al taller si todavía lo necesitás.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Pide uno nuevo al taller si aún lo necesitas.</p>
         </div>
       </Shell>
     );

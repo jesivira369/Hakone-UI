@@ -255,7 +255,7 @@ export default function CuentaPage() {
                 <h2 className="text-base font-semibold">Sesiones</h2>
                 <p className="text-sm text-muted-foreground">
                     Tu sesión dura 30 días y se renueva sola mientras uses la app. Si perdiste un celular o alguien más
-                    tuvo acceso, cerrá la sesión en todos los dispositivos: tendrás que volver a ingresar en cada uno.
+                    tuvo acceso, cierra la sesión en todos los dispositivos: tendrás que volver a ingresar en cada uno.
                     Al cambiar la contraseña también se cierran las demás sesiones.
                 </p>
                 <Button variant="outline" onClick={() => setShowLogoutAllModal(true)}>

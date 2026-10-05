@@ -51,7 +51,8 @@ function PasswordInput({
 }
 
 export default function CuentaPage() {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
+    const [showLogoutAllModal, setShowLogoutAllModal] = useState(false);
 
     // Profile form
     const [shopName, setShopName] = useState(user?.shopName ?? "");
@@ -99,6 +100,23 @@ export default function CuentaPage() {
             setShowPasswordModal(false);
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
             toast.error(msg ?? "Error al cambiar la contraseña", {
+                className: "bg-red-600 text-white border border-red-700",
+            });
+        },
+    });
+
+    // Cierra la sesión de ESTE taller en todos sus dispositivos (no afecta a otros talleres).
+    const logoutAllMutation = useMutation({
+        mutationFn: async () => {
+            await api.post("/account/logout-all");
+        },
+        onSuccess: () => {
+            setShowLogoutAllModal(false);
+            logout();
+        },
+        onError: () => {
+            setShowLogoutAllModal(false);
+            toast.error("No se pudieron cerrar las sesiones", {
                 className: "bg-red-600 text-white border border-red-700",
             });
         },
@@ -231,6 +249,39 @@ export default function CuentaPage() {
                     </form>
                 </div>
             </div>
+
+            {/* Sesiones */}
+            <div className="rounded-xl border bg-card p-5 space-y-3">
+                <h2 className="text-base font-semibold">Sesiones</h2>
+                <p className="text-sm text-muted-foreground">
+                    Tu sesión dura 30 días y se renueva sola mientras uses la app. Si perdiste un celular o alguien más
+                    tuvo acceso, cerrá la sesión en todos los dispositivos: tendrás que volver a ingresar en cada uno.
+                    Al cambiar la contraseña también se cierran las demás sesiones.
+                </p>
+                <Button variant="outline" onClick={() => setShowLogoutAllModal(true)}>
+                    Cerrar sesión en todos los dispositivos
+                </Button>
+            </div>
+
+            <Dialog open={showLogoutAllModal} onOpenChange={setShowLogoutAllModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Cerrar sesión en todos los dispositivos</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-muted-foreground">
+                        Se cerrará tu sesión en este y en todos los demás dispositivos. Los enlaces de tus mecánicos y de tus
+                        clientes no se ven afectados.
+                    </p>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowLogoutAllModal(false)}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={() => logoutAllMutation.mutate()} disabled={logoutAllMutation.isPending}>
+                            {logoutAllMutation.isPending ? "Cerrando..." : "Cerrar todas las sesiones"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Profile confirm modal */}
             <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>

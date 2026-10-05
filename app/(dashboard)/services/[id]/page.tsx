@@ -8,19 +8,19 @@ import { ServiceCategoryLabels, ServiceStatus, ServiceStatusDescriptions, getPay
 import { formatCurrency, formatDate, partsTotal as calcPartsTotal, serviceTotal } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, MessageCircle, PackageCheck, PackageOpen } from "lucide-react";
+import { Edit, PackageCheck, PackageOpen } from "lucide-react";
 import { invalidateServiceQueries } from "@/lib/invalidateServiceQueries";
 import { useState } from "react";
 import { ServiceModal } from "@/components/ui/ServiceModal";
 import { ServiceStatusUpdater } from "@/components/ui/ServiceStatusUpdater";
 import { DetailsSkeleton } from "@/components/ui/Skeleton/DetailsSkeleton";
-import { buildWaMeLink, buildWhatsAppReadyMessage } from "@/lib/whatsapp";
+import { formatFolio } from "@/lib/whatsapp";
+import { WhatsAppShareButton } from "@/components/ui/WhatsAppShareButton";
+import { TrackingLinkMenu } from "@/components/ui/TrackingLinkMenu";
 import { toast } from "react-toastify";
-import { useAuth } from "@/context/auth-provider";
 
 export default function ServiceDetails() {
     const { id: serviceId } = useParams();
-    const { user } = useAuth();
     const [editModalOpen, setEditModalOpen] = useState(false);
     const queryClient = useQueryClient();
 
@@ -62,33 +62,12 @@ export default function ServiceDetails() {
     return (
         <div className="min-w-0 space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="text-xl font-bold sm:text-2xl">Detalles del Servicio</h1>
+                <h1 className="text-xl font-bold sm:text-2xl">
+                    Detalles del Servicio <span className="ml-1 text-muted-foreground">· Orden {formatFolio(service.number)}</span>
+                </h1>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0"
-                        onClick={() => {
-                            try {
-                                const phone = service.client?.phone ?? "";
-                                const bikeLabel = service.bicycle ? `${service.bicycle.brand} ${service.bicycle.model}` : "tu bici";
-                                const msg = buildWhatsAppReadyMessage({
-                                    clientName: service.client?.name ?? "",
-                                    bikeLabel,
-                                    shopName: user?.shopName ?? "",
-                                });
-                                const link = buildWaMeLink({ phoneE164: phone, message: msg });
-                                window.open(link, "_blank", "noopener,noreferrer");
-                            } catch (e: unknown) {
-                                const msg = e instanceof Error ? e.message : "No se pudo abrir WhatsApp";
-                                toast.error(msg, {
-                                    className: "bg-red-600 text-white border border-red-700",
-                                });
-                            }
-                        }}
-                    >
-                        <MessageCircle size={16} className="mr-2 text-green-600" /> WhatsApp
-                    </Button>
+                    <WhatsAppShareButton service={service} />
+                    <TrackingLinkMenu service={service} />
                     <Button
                         variant="outline"
                         size="sm"

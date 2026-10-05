@@ -275,6 +275,20 @@ export default function AdminPage() {
                     <Button size="sm" variant="ghost" onClick={() => setHistoryTarget(row.original)}>
                         Historial
                     </Button>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        title="Cierra las sesiones abiertas de este taller (no afecta a otros)"
+                        onClick={() => {
+                            if (!window.confirm(`¿Cerrar todas las sesiones de ${row.original.shopName}?`)) return;
+                            api
+                                .post(`/users/${row.original.id}/logout-all`)
+                                .then(() => toast.success("Sesiones cerradas", { className: "bg-green-600 text-white border border-green-700" }))
+                                .catch(() => toast.error("No se pudieron cerrar las sesiones", { className: "bg-red-600 text-white border border-red-700" }));
+                        }}
+                    >
+                        Cerrar sesiones
+                    </Button>
                 </div>
             ),
         },

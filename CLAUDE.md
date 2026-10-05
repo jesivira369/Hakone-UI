@@ -58,6 +58,16 @@ excepciones para las rutas de auth (si no, un login fallido haría un loop).
 TanStack Query para todo lo que viene de la API. No metas datos del servidor en
 `useState`.
 
+Caché (`app/providers.tsx`): `staleTime` 30 s y **sin** refetch al volver a la
+pestaña. El dashboard usa `staleTime` de 5 min con una sola query
+(`stats-dashboard` → `GET /statistics/dashboard`); no vuelvas a partirla en varias.
+Los datos se mantienen correctos porque toda mutación de servicios llama a
+`invalidateServiceQueries()`. No uses `Cache-Control` en estadísticas: el navegador
+serviría datos viejos aunque React Query invalide.
+
+Las `columns` de una `DataTable` deben ir en `useMemo`: si cambian en cada render,
+React remonta las celdas y los menús abiertos (⋮) se cierran solos.
+
 ---
 
 ## Reglas de negocio a respetar en la UI
@@ -82,6 +92,20 @@ método de pago → `POST /services/:id/pay`). Los inputs numéricos del formula
 servicio usan `NumericInput` (permite vaciar mientras se edita). Al modificar un
 servicio, invalidá con `invalidateServiceQueries()` (detalle, listados,
 calendario y `stats-*`). Specs en `Hakone-API/docs/specs/`.
+
+### Retiro de la bici
+
+`pickedUpAt` (null = en el taller) es independiente del estado y del cobro. Se
+marca desde el menú ⋮ de Servicios o el botón del detalle (`PATCH /services/:id/pickup`).
+El dashboard muestra la tarjeta "En el taller" (`GET /services/in-shop`).
+
+### Servicios y calendario (responsive)
+
+- La tabla de Servicios muestra solo lo esencial (cliente+bici, descripción, estado, total,
+  creado, retiro) con acciones en un menú ⋮; toda la fila navega al detalle. No debe haber
+  scroll horizontal en tablet ni laptop chica (solo en teléfono). Medilo a 768 y 1024 px.
+- El calendario usa `GET /services/calendar` (sin el tope de 100). PC: grilla mensual.
+  Teléfono: agenda por semana o por día. La leyenda son chips que filtran estados.
 
 ### Suscripción vencida
 

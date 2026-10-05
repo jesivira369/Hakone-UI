@@ -4,6 +4,18 @@ import { NextRequest } from "next/server";
 // En producción NEXT_PUBLIC_API_URL siempre viene seteada.
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
 
+// Si la API no responde, cortamos en lugar de dejar la conexión (y la RAM del servicio Next) colgada.
+// El export de Excel arma un libro grande, por eso tiene un margen mayor.
+const DEFAULT_TIMEOUT_MS = 30_000;
+const EXPORT_TIMEOUT_MS = 120_000;
+
+function jsonError(status: number, message: string) {
+  return new Response(JSON.stringify({ statusCode: status, message }), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
 function buildTargetUrl(req: NextRequest, pathParts: string[]) {
   const url = new URL(req.url);
   const target = new URL(`${API_URL}/api/v1/${pathParts.join("/")}`);
@@ -34,12 +46,23 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }
   const method = req.method.toUpperCase();
   const body = method === "GET" || method === "HEAD" ? undefined : await req.arrayBuffer();
 
-  const upstream = await fetch(targetUrl, {
-    method,
-    headers,
-    body,
-    redirect: "manual",
-  });
+  const timeoutMs = path[path.length - 1] === "export" ? EXPORT_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(targetUrl, {
+      method,
+      headers,
+      body,
+      redirect: "manual",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "TimeoutError") {
+      return jsonError(504, "La API tardó demasiado en responder");
+    }
+    return jsonError(502, "No se pudo conectar con la API");
+  }
 
   const resHeaders = new Headers(upstream.headers);
 

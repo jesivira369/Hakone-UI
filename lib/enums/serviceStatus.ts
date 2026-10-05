@@ -20,6 +20,18 @@ export const ServiceStatusLabels: Record<ServiceStatus, string> = {
   [ServiceStatus.CANCELED]: "Cancelado",
 };
 
+/** Qué significa cada estado, para tooltips y ayudas en pantalla. */
+export const ServiceStatusDescriptions: Record<ServiceStatus, string> = {
+  [ServiceStatus.IN_REVIEW]: "La bici llegó al taller y se está revisando; todavía no hay precio.",
+  [ServiceStatus.QUOTED]: "Ya hay un presupuesto para el cliente.",
+  [ServiceStatus.SCHEDULED]: "Trabajo aceptado y con fecha de inicio y de entrega.",
+  [ServiceStatus.IN_PROGRESS]: "Se está trabajando en la bici.",
+  [ServiceStatus.COMPLETED]: "Trabajo terminado y cliente avisado; falta cobrarlo.",
+  [ServiceStatus.PAID]: "Trabajo terminado y cobrado. Cuenta como ingreso.",
+  [ServiceStatus.BLOCKED]: "El trabajo está frenado por algún motivo (repuestos, cliente, etc.).",
+  [ServiceStatus.CANCELED]: "El servicio se descartó.",
+};
+
 /** Estados en los que el trabajo sigue abierto: es donde "urgente" se pinta en rojo. */
 export const ACTIVE_SERVICE_STATUSES: ServiceStatus[] = [
   ServiceStatus.IN_REVIEW,

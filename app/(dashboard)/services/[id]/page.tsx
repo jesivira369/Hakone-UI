@@ -1,14 +1,15 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Service } from "@/lib/types";
-import { ServiceCategoryLabels, ServiceStatus, getPaymentMethodLabel, getServiceStatusLabel, getServiceStatusStyle, URGENT_STYLE } from "@/lib/enums";
+import { ServiceCategoryLabels, ServiceStatus, ServiceStatusDescriptions, getPaymentMethodLabel, getServiceStatusLabel, getServiceStatusStyle, URGENT_STYLE } from "@/lib/enums";
 import { formatCurrency, formatDate, partsTotal as calcPartsTotal, serviceTotal } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, MessageCircle } from "lucide-react";
+import { Edit, MessageCircle, PackageCheck, PackageOpen } from "lucide-react";
+import { invalidateServiceQueries } from "@/lib/invalidateServiceQueries";
 import { useState } from "react";
 import { ServiceModal } from "@/components/ui/ServiceModal";
 import { ServiceStatusUpdater } from "@/components/ui/ServiceStatusUpdater";
@@ -21,6 +22,25 @@ export default function ServiceDetails() {
     const { id: serviceId } = useParams();
     const { user } = useAuth();
     const [editModalOpen, setEditModalOpen] = useState(false);
+    const queryClient = useQueryClient();
+
+    const pickupMutation = useMutation({
+        mutationFn: async (pickedUp: boolean) => {
+            await api.patch(`/services/${serviceId}/pickup`, { pickedUp });
+            return pickedUp;
+        },
+        onSuccess: (pickedUp) => {
+            invalidateServiceQueries(queryClient);
+            toast.success(pickedUp ? "Bici entregada al cliente" : "La bici volvió a figurar en el taller", {
+                className: "bg-green-600 text-white border border-green-700",
+            });
+        },
+        onError: (error) => {
+            toast.error(error.message || "No se pudo actualizar la entrega", {
+                className: "bg-red-600 text-white border border-red-700",
+            });
+        },
+    });
 
     const { data: service, isLoading, error } = useQuery<Service>({
         queryKey: ["service", serviceId],
@@ -69,6 +89,19 @@ export default function ServiceDetails() {
                     >
                         <MessageCircle size={16} className="mr-2 text-green-600" /> WhatsApp
                     </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        disabled={pickupMutation.isPending}
+                        onClick={() => pickupMutation.mutate(!service.pickedUpAt)}
+                    >
+                        {service.pickedUpAt ? (
+                            <><PackageOpen size={16} className="mr-2" /> Marcar en el taller</>
+                        ) : (
+                            <><PackageCheck size={16} className="mr-2" /> Entregar bici</>
+                        )}
+                    </Button>
                     <Button variant="outline" size="sm" className="shrink-0" onClick={() => setEditModalOpen(true)}>
                         <Edit size={16} className="mr-2" /> Editar Servicio
                     </Button>
@@ -84,7 +117,10 @@ export default function ServiceDetails() {
                         <p className="text-gray-500">Descripción:</p>
                         <p className="font-medium">{service.description}</p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getServiceStatusStyle(service.status).badge}`}>
+                            <span
+                                title={ServiceStatusDescriptions[service.status as ServiceStatus]}
+                                className={`rounded-full px-2 py-0.5 text-xs font-medium ${getServiceStatusStyle(service.status).badge}`}
+                            >
                                 {getServiceStatusLabel(service.status)}
                             </span>
                             {service.isUrgent && (
@@ -94,7 +130,12 @@ export default function ServiceDetails() {
                             )}
                         </div>
                     </div>
-                    <ServiceStatusUpdater service={service} />
+                    <div className="space-y-1">
+                        <ServiceStatusUpdater service={service} />
+                        <p className="text-xs text-muted-foreground">
+                            {ServiceStatusDescriptions[service.status as ServiceStatus]}
+                        </p>
+                    </div>
 
                     <div>
                         <p className="text-gray-500">Mano de obra:</p>
@@ -137,6 +178,12 @@ export default function ServiceDetails() {
                             <p className="font-medium">{formatDate(service.completedAt)}</p>
                         </div>
                     )}
+                    <div>
+                        <p className="text-gray-500">Retiro de la bici:</p>
+                        <p className="font-medium">
+                            {service.pickedUpAt ? `Retirada el ${formatDate(service.pickedUpAt)}` : "En el taller"}
+                        </p>
+                    </div>
                     <div>
                         <p className="text-gray-500">Recordatorio:</p>
                         <p className="font-medium">

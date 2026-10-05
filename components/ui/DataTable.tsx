@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
+// Solo por debajo de `sm`; el fondo tapa lo que pasa por detrás al scrollear.
+const STICKY_LAST = "sticky right-0 bg-card shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.15)] sm:static sm:bg-transparent sm:shadow-none";
+
 interface DataTableProps<TData> {
     columns: ColumnDef<TData>[];
     data: TData[];
@@ -25,6 +28,10 @@ interface DataTableProps<TData> {
     setSortBy?: (col: string) => void;
     sortOrder?: "asc" | "desc";
     setSortOrder?: (order: "asc" | "desc") => void;
+    /** Si se pasa, toda la fila es clicable. Los controles internos (menús, botones) deben frenar el click con stopPropagation. */
+    onRowClick?: (row: TData) => void;
+    /** En pantallas chicas (donde la tabla scrollea) deja la última columna —las acciones— siempre visible a la derecha. */
+    stickyLastColumn?: boolean;
 }
 
 export function DataTable<TData>({
@@ -40,6 +47,8 @@ export function DataTable<TData>({
     setSortBy,
     sortOrder,
     setSortOrder,
+    onRowClick,
+    stickyLastColumn,
 }: DataTableProps<TData>) {
     const table = useReactTable({
         data,
@@ -75,7 +84,7 @@ export function DataTable<TData>({
                                     return (
                                         <TableCell
                                             key={header.id}
-                                            className={`font-semibold ${isLast ? "text-right" : ""} ${canSort ? "cursor-pointer select-none" : ""}`}
+                                            className={`font-semibold ${isLast ? "text-right" : ""} ${canSort ? "cursor-pointer select-none" : ""} ${isLast && stickyLastColumn ? STICKY_LAST : ""}`}
                                             onClick={canSort ? () => handleSort(header.column.id) : undefined}
                                         >
                                             <div className={`flex items-center gap-1 ${isLast ? "justify-end" : ""}`}>
@@ -98,9 +107,16 @@ export function DataTable<TData>({
                     </TableHeader>
                     <TableBody>
                         {table.getRowModel().rows.map((row) => (
-                            <TableRow key={row.id}>
+                            <TableRow
+                                key={row.id}
+                                className={onRowClick ? "cursor-pointer" : undefined}
+                                onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                            >
                                 {row.getVisibleCells().map((cell, index) => (
-                                    <TableCell key={cell.id} className={`${index === row.getVisibleCells().length - 1 ? "text-right" : ""}`}>
+                                    <TableCell
+                                        key={cell.id}
+                                        className={`${index === row.getVisibleCells().length - 1 ? `text-right ${stickyLastColumn ? STICKY_LAST : ""}` : ""}`}
+                                    >
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                     </TableCell>
                                 ))}

@@ -78,3 +78,28 @@ export interface TopClientItem {
   totalServices: number;
   totalSpent: number;
 }
+
+/** Respuesta de `GET /statistics/dashboard`: todo lo que pinta el dashboard en una sola llamada. */
+export interface DashboardStats {
+  overview: StatsOverview;
+  revenue: RevenueStats;
+  expenses: ExpenseStats;
+  netIncome: NetIncomeStats;
+  byStatus: ServicesByStatus;
+  topClients: TopClientItem[];
+  revenueByMethod: RevenueByPaymentMethod;
+}
+
+/** Respuesta de `GET /services/in-shop`: bicis que siguen en el taller (sin retirar). */
+export interface InShopSummary {
+  total: number;
+  items: {
+    id: number;
+    description: string;
+    status: string;
+    isUrgent: boolean;
+    createdAt: string;
+    client: { id: number; name: string } | null;
+    bicycle: { id: number; brand: string; model: string } | null;
+  }[];
+}

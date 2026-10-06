@@ -37,7 +37,6 @@ export function useMechanicJobs(token: string) {
   const readyOpenRef = useRef(false);
   const [unavailable, setUnavailable] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
-  const [errors, setErrors] = useState<Record<number, string>>({});
 
   // Descarta respuestas de una recarga anterior (por ejemplo al volver a abrir la app mientras había una en curso).
   const generation = useRef(0);
@@ -81,7 +80,6 @@ export function useMechanicJobs(token: string) {
   const reload = useCallback(() => {
     generation.current += 1;
     lastLoadAt.current = Date.now();
-    setErrors({});
     void loadPage("todo", 1);
     if (readyOpenRef.current) void loadPage("ready", 1);
     else setSections((s) => ({ ...s, ready: EMPTY }));
@@ -108,21 +106,20 @@ export function useMechanicJobs(token: string) {
     if (next && sections.ready.page === 0) void loadPage("ready", 1);
   };
 
-  const changeStatus = async (item: JobItem, status: string) => {
-    if (status === item.status) return;
+  /** Cambia el estado de un trabajo. Devuelve `null` si salió bien o el mensaje de error para mostrarlo en el modal. */
+  const changeStatus = async (item: JobItem, status: string): Promise<string | null> => {
     setBusyId(item.id);
-    setErrors((e) => ({ ...e, [item.id]: "" }));
     try {
       await updateJobStatus(token, item.id, status);
       // El trabajo puede pasar de una sección a otra: se recarga para que listas y contadores queden consistentes.
       reload();
+      return null;
     } catch (err) {
-      const message = err instanceof JobsApiError ? err.message : "No se pudo cambiar el estado. Revisa tu conexión.";
-      setErrors((e) => ({ ...e, [item.id]: message }));
+      return err instanceof JobsApiError ? err.message : "No se pudo cambiar el estado. Revisa tu conexión.";
     } finally {
       setBusyId(null);
     }
   };
 
-  return { sections, counts, header, readyOpen, unavailable, busyId, errors, reload, loadMore, toggleReady, changeStatus };
+  return { sections, counts, header, readyOpen, unavailable, busyId, reload, loadMore, toggleReady, changeStatus };
 }

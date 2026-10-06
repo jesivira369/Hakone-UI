@@ -51,6 +51,13 @@ export function buildWhatsAppReceiptMessage(opts: {
   return `Hola ${name}! Recibimos tu ${bike} en ${shop}. Orden ${formatFolio(opts.number)}${desc ? `: ${desc}` : ""}.${when} Sigue el estado aquí: ${opts.url}`;
 }
 
+/** Mensaje con el enlace personal de tareas del mecánico. */
+export function buildWhatsAppMechanicLinkMessage(opts: { mechanicName: string; shopName: string; url: string }) {
+  const name = (opts.mechanicName || "").trim() || "Hola";
+  const shop = (opts.shopName || "").trim() || "el taller";
+  return `Hola ${name}! Este es tu enlace para ver y actualizar tus trabajos en ${shop}: ${opts.url} Guárdalo como acceso directo en tu celular y no lo compartas.`;
+}
+
 export function buildWaMeLink(opts: {
   phoneE164: string;
   message: string;

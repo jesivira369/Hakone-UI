@@ -7,7 +7,7 @@ import { DeleteModal } from "@/components/ui/DeleteModal";
 import api from "@/lib/axiosInstance";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
-import { Ban, Link2, MoreVertical, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Ban, Link2, MessageCircle, MoreVertical, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -16,6 +16,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { mechanicLinkUrl } from "@/lib/whatsapp";
+import { linkState, resolveAccessToken, sendMechanicLinkWhatsApp, type LinkTone } from "@/lib/mechanicLink";
+import { useAuth } from "@/context/auth-provider";
 import { useState, useEffect, useMemo } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Input } from "@/components/ui/input";
@@ -24,23 +26,11 @@ import { formatDate } from "@/lib/utils";
 import { toast } from "react-toastify";
 import { TableSkeleton } from "@/components/ui/Skeleton/TableSkeleton";
 
-const IDLE_DAYS = 30;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** Estado del enlace personal: vence a los 30 días sin uso (misma regla que la API). */
-function linkState(m: Mechanic): { label: string; tone: "ok" | "warn" | "off" } {
-    if (!m.accessToken) return { label: "Sin enlace", tone: "off" };
-    const last = m.accessTokenLastUsedAt ? new Date(m.accessTokenLastUsedAt).getTime() : 0;
-    if (Date.now() >= last + IDLE_DAYS * DAY_MS) return { label: "Vencido", tone: "warn" };
-    const days = Math.floor((Date.now() - last) / DAY_MS);
-    return { label: days <= 0 ? "Activo · usado hoy" : `Activo · usado hace ${days} ${days === 1 ? "día" : "días"}`, tone: "ok" };
-}
-
-const TONE_CLASS = {
+const TONE_CLASS: Record<LinkTone, string> = {
     ok: "bg-primary/15 text-primary",
     warn: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
     off: "bg-muted text-muted-foreground",
-} as const;
+};
 
 export default function Mechanics() {
     const queryClient = useQueryClient();
@@ -94,12 +84,8 @@ export default function Mechanics() {
                 await api.delete(`/mechanics/${mechanic.id}/access-link`);
                 return "Enlace desactivado";
             }
-            const state = linkState(mechanic);
             // Copiar reutiliza el enlace vigente; si no hay o venció, o se pidió regenerar, se crea uno nuevo.
-            const reuse = action === "copy" && state.tone === "ok" && mechanic.accessToken;
-            const token = reuse
-                ? mechanic.accessToken!
-                : (await api.post<{ accessToken: string }>(`/mechanics/${mechanic.id}/access-link`)).data.accessToken;
+            const token = await resolveAccessToken(mechanic, action === "regenerate");
             await navigator.clipboard.writeText(mechanicLinkUrl(window.location.origin, token));
             return action === "regenerate"
                 ? "Enlace nuevo copiado. El anterior ya no funciona"
@@ -114,6 +100,23 @@ export default function Mechanics() {
         },
     });
     const runLink = linkMutation.mutate;
+
+    const { user } = useAuth();
+    const shopName = user?.shopName ?? "";
+    const whatsappMutation = useMutation({
+        mutationFn: (mechanic: Mechanic) => sendMechanicLinkWhatsApp(mechanic, shopName),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mechanics"] }),
+        onError: (err: Error) => {
+            toast.error(err.message || "No se pudo abrir WhatsApp", { className: "bg-red-600 text-white border border-red-700" });
+        },
+    });
+    const sendWhatsApp = whatsappMutation.mutate;
+    // Sin teléfono no hay a quién enviarle: se abre la edición para cargarlo.
+    const askForPhone = (mechanic: Mechanic) => {
+        toast.info("Agrega el teléfono del mecánico para enviarle el enlace por WhatsApp");
+        setSelectedMechanic(mechanic);
+        setModalOpen(true);
+    };
 
     // Memoizadas: si el array cambia en cada render, el menú ⋮ abierto se cierra solo.
     const columns = useMemo<ColumnDef<Mechanic>[]>(() => [
@@ -156,6 +159,9 @@ export default function Mechanics() {
                                     <Pencil size={14} className="mr-2" /> Editar
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
+                                <DropdownMenuItem onSelect={() => (mechanic.phone ? sendWhatsApp(mechanic) : askForPhone(mechanic))}>
+                                    <MessageCircle size={14} className="mr-2" /> Enviar enlace por WhatsApp
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => runLink({ mechanic, action: "copy" })}>
                                     <Link2 size={14} className="mr-2" /> Copiar enlace
                                 </DropdownMenuItem>
@@ -180,7 +186,7 @@ export default function Mechanics() {
                 );
             },
         },
-    ], [runLink]);
+    ], [runLink, sendWhatsApp]);
 
     if (isLoading && !mechanicsData) return <TableSkeleton />;
     if (error) return <p>Error al cargar los mecánicos.</p>;

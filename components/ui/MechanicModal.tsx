@@ -11,9 +11,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Mechanic } from "@/lib/types";
 import { toast } from "react-toastify";
+import { PhoneInputE164 } from "@/components/ui/PhoneInputE164";
+import { normalizeOptionalPhone } from "@/lib/phone";
 
 const mechanicSchema = z.object({
     name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+    // Opcional: sirve para enviarle por WhatsApp el enlace de sus tareas. Si se escribe, debe ser válido.
+    phone: z
+        .string()
+        .optional()
+        .refine((value) => normalizeOptionalPhone(value).ok, "Número inválido para WhatsApp. Selecciona el país e ingresa el número sin 0 ni 15."),
 });
 
 interface MechanicModalProps {
@@ -30,18 +37,21 @@ export function MechanicModal({ isOpen, onClose, mechanic }: MechanicModalProps)
         register,
         handleSubmit,
         setValue,
+        watch,
         reset,
         formState: { errors },
     } = useForm({
         resolver: zodResolver(mechanicSchema),
         defaultValues: {
             name: "",
+            phone: "",
         },
     });
 
     useEffect(() => {
         if (mechanic) {
             setValue("name", mechanic.name);
+            setValue("phone", mechanic.phone ?? "");
         } else {
             reset();
         }
@@ -50,10 +60,13 @@ export function MechanicModal({ isOpen, onClose, mechanic }: MechanicModalProps)
     const mutation = useMutation({
         mutationFn: async (data: z.infer<typeof mechanicSchema>) => {
             setIsLoading(true);
+            // "" (sin teléfono) llega a la API como null y limpia el campo.
+            const normalized = normalizeOptionalPhone(data.phone);
+            const payload = { name: data.name, phone: normalized.ok ? normalized.value : "" };
             if (mechanic) {
-                await api.patch(`/mechanics/${mechanic.id}`, data);
+                await api.patch(`/mechanics/${mechanic.id}`, payload);
             } else {
-                await api.post("/mechanics", data);
+                await api.post("/mechanics", payload);
             }
         },
         onSuccess: () => {
@@ -91,8 +104,18 @@ export function MechanicModal({ isOpen, onClose, mechanic }: MechanicModalProps)
                         {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
                     </div>
 
+                    <div>
+                        <label className="mb-1 block text-sm font-medium">Teléfono (opcional)</label>
+                        <PhoneInputE164
+                            value={watch("phone") ?? ""}
+                            onChange={(next) => setValue("phone", next, { shouldValidate: true })}
+                        />
+                        {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
+                        <p className="mt-1 text-xs text-muted-foreground">Para enviarle por WhatsApp el enlace de sus trabajos.</p>
+                    </div>
+
                     <DialogFooter>
-                        <Button variant="outline" onClick={onClose}>
+                        <Button type="button" variant="outline" onClick={onClose}>
                             Cancelar
                         </Button>
                         <Button type="submit" disabled={isLoading}>

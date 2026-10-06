@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { AlertTriangle, Bike, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JobCard } from "./JobCard";
+import { StatusConfirmDialog, type PendingStatusChange } from "./StatusConfirmDialog";
 import type { JobItem, Section } from "./types";
 import { useMechanicJobs } from "./useMechanicJobs";
 
@@ -27,17 +29,16 @@ interface JobListProps {
   hasMore: boolean;
   loading: boolean;
   busyId: number | null;
-  errors: Record<number, string>;
   onLoadMore: () => void;
-  onChangeStatus: (item: JobItem, status: string) => void;
+  onRequestStatus: (item: JobItem, status: string) => void;
 }
 
-function JobList({ items, hasMore, loading, busyId, errors, onLoadMore, onChangeStatus }: JobListProps) {
+function JobList({ items, hasMore, loading, busyId, onLoadMore, onRequestStatus }: JobListProps) {
   return (
     <>
       <ul className="space-y-3">
         {items.map((item) => (
-          <JobCard key={item.id} item={item} busy={busyId === item.id} error={errors[item.id]} onChangeStatus={onChangeStatus} />
+          <JobCard key={item.id} item={item} busy={busyId === item.id} onRequestStatus={onRequestStatus} />
         ))}
       </ul>
       {hasMore && (
@@ -52,6 +53,11 @@ function JobList({ items, hasMore, loading, busyId, errors, onLoadMore, onChange
 export default function MechanicPage() {
   const { token } = useParams<{ token: string }>();
   const jobs = useMechanicJobs(token);
+  // Cambio de estado esperando confirmación en el modal.
+  const [pending, setPending] = useState<PendingStatusChange | null>(null);
+  const requestStatus = (item: JobItem, status: string) => {
+    if (status !== item.status) setPending({ item, status });
+  };
 
   if (jobs.unavailable && !jobs.header) return <Unavailable />;
 
@@ -88,9 +94,8 @@ export default function MechanicPage() {
               hasMore={hasMore("todo")}
               loading={sections.todo.loading}
               busyId={jobs.busyId}
-              errors={jobs.errors}
               onLoadMore={() => jobs.loadMore("todo")}
-              onChangeStatus={jobs.changeStatus}
+              onRequestStatus={requestStatus}
             />
           </section>
         )}
@@ -113,15 +118,20 @@ export default function MechanicPage() {
                   hasMore={hasMore("ready")}
                   loading={sections.ready.loading}
                   busyId={jobs.busyId}
-                  errors={jobs.errors}
                   onLoadMore={() => jobs.loadMore("ready")}
-                  onChangeStatus={jobs.changeStatus}
+                  onRequestStatus={requestStatus}
                 />
               </div>
             )}
           </section>
         )}
       </div>
+
+      <StatusConfirmDialog
+        change={pending}
+        onConfirm={({ item, status }) => jobs.changeStatus(item, status)}
+        onClose={() => setPending(null)}
+      />
     </main>
   );
 }

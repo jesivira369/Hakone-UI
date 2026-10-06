@@ -1,4 +1,5 @@
 import type { JobItem, JobsPage, Section } from "./types";
+import type { JobView } from "./viewOptions";
 
 export const PAGE_SIZE = 20;
 
@@ -19,8 +20,9 @@ async function errorFrom(res: Response, fallback: string): Promise<JobsApiError>
   return new JobsApiError(body.message ?? fallback, res.status);
 }
 
-async function requestJobs(token: string, section: Section, page: number): Promise<JobsPage> {
-  const query = new URLSearchParams({ section, page: String(page), limit: String(PAGE_SIZE) });
+async function requestJobs(token: string, section: Section, page: number, view: JobView): Promise<JobsPage> {
+  const query = new URLSearchParams({ section, page: String(page), limit: String(PAGE_SIZE), sort: view.sort });
+  if (view.status !== "ALL") query.set("status", view.status);
   const res = await fetch(`${base(token)}?${query}`, { cache: "no-store" });
   if (!res.ok) throw await errorFrom(res, "No se pudieron cargar los trabajos");
   return (await res.json()) as JobsPage;
@@ -30,12 +32,12 @@ async function requestJobs(token: string, section: Section, page: number): Promi
 // pide la misma lista; se comparte una sola petición en vez de duplicar la carga en la API.
 const inFlight = new Map<string, Promise<JobsPage>>();
 
-export function fetchJobs(token: string, section: Section, page: number): Promise<JobsPage> {
-  const key = `${token}:${section}:${page}`;
+export function fetchJobs(token: string, section: Section, page: number, view: JobView): Promise<JobsPage> {
+  const key = `${token}:${section}:${page}:${view.sort}:${view.status}`;
   const pending = inFlight.get(key);
   if (pending) return pending;
 
-  const request = requestJobs(token, section, page).finally(() => inFlight.delete(key));
+  const request = requestJobs(token, section, page, view).finally(() => inFlight.delete(key));
   inFlight.set(key, request);
   return request;
 }

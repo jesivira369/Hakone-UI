@@ -61,11 +61,15 @@ export default function ServiceDetails() {
 
     return (
         <div className="min-w-0 space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="text-xl font-bold sm:text-2xl">
-                    Detalles del Servicio <span className="ml-1 text-muted-foreground">· Orden {formatFolio(service.number)}</span>
+            {/* Título arriba y acciones debajo hasta `lg` (si no, el título quedaba aplastado junto a los botones) */}
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <h1 className="min-w-0 text-xl font-bold sm:text-2xl">
+                    Detalles del Servicio
+                    <span className="ml-2 inline-block whitespace-nowrap rounded-lg bg-primary/10 px-2 py-0.5 align-middle text-base font-bold text-primary">
+                        {formatFolio(service.number)}
+                    </span>
                 </h1>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center [&>*]:min-w-0">
                     <WhatsAppShareButton service={service} />
                     <TrackingLinkMenu service={service} />
                     <Button

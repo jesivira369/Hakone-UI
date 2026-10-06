@@ -41,7 +41,7 @@ export function StatusConfirmDialog({ change, onConfirm, onClose }: StatusConfir
 
   return (
     <Dialog open={change !== null} onOpenChange={(open) => !open && !submitting && onClose()}>
-      <DialogContent className="max-w-[min(92vw,24rem)]">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-sm rounded-lg">
         <DialogHeader>
           <DialogTitle>Confirmar cambio de estado</DialogTitle>
         </DialogHeader>

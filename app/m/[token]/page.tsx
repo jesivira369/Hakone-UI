@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { AlertTriangle, Bike, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JobCard } from "./JobCard";
+import { JobFilters } from "./JobFilters";
+import { DEFAULT_VIEW } from "./viewOptions";
 import { StatusConfirmDialog, type PendingStatusChange } from "./StatusConfirmDialog";
 import type { JobItem, Section } from "./types";
 import { useMechanicJobs } from "./useMechanicJobs";
@@ -36,7 +38,7 @@ interface JobListProps {
 function JobList({ items, hasMore, loading, busyId, onLoadMore, onRequestStatus }: JobListProps) {
   return (
     <>
-      <ul className="space-y-3">
+      <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => (
           <JobCard key={item.id} item={item} busy={busyId === item.id} onRequestStatus={onRequestStatus} />
         ))}
@@ -65,10 +67,12 @@ export default function MechanicPage() {
   const hasMore = (section: Section) => sections[section].page < sections[section].totalPages;
   const initialLoad = !jobs.header;
   const noJobs = !initialLoad && counts.todo === 0 && counts.ready === 0;
+  const filtering = jobs.view.status !== DEFAULT_VIEW.status;
+  const todoMatching = sections.todo.matching;
 
   return (
     <main className="min-h-dvh bg-muted/40 px-4 py-6">
-      <div className="mx-auto w-full max-w-md space-y-5">
+      <div className="mx-auto w-full max-w-md space-y-5 md:max-w-3xl lg:max-w-5xl">
         <header className="flex items-center justify-between gap-3 px-1">
           <div className="min-w-0">
             <p className="truncate text-sm text-muted-foreground">{jobs.header?.shopName ?? " "}</p>
@@ -86,9 +90,19 @@ export default function MechanicPage() {
           </div>
         )}
 
+        {!initialLoad && !noJobs && <JobFilters view={jobs.view} onChange={jobs.changeView} />}
+
+        {counts.todo > 0 && filtering && !sections.todo.loading && todoMatching === 0 && (
+          <p className="rounded-2xl border bg-card p-4 text-center text-sm text-muted-foreground">
+            Ningún trabajo tiene ese estado.
+          </p>
+        )}
+
         {counts.todo > 0 && (
           <section aria-label="Para hacer">
-            <h2 className="mb-2 px-1 text-sm font-semibold">Para hacer ({counts.todo})</h2>
+            <h2 className="mb-2 px-1 text-sm font-semibold">
+              Para hacer ({filtering ? `${todoMatching} de ${counts.todo}` : counts.todo})
+            </h2>
             <JobList
               items={sections.todo.items}
               hasMore={hasMore("todo")}

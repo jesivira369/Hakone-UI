@@ -120,17 +120,36 @@ export default function Mechanics() {
 
     // Memoizadas: si el array cambia en cada render, el menú ⋮ abierto se cierra solo.
     const columns = useMemo<ColumnDef<Mechanic>[]>(() => [
-        { accessorKey: "name", header: "Nombre", enableSorting: true },
+        {
+            accessorKey: "name",
+            header: "Nombre",
+            enableSorting: true,
+            // En móvil la tabla es angosta: el estado del enlace se muestra bajo el nombre (en pantallas grandes tiene su columna).
+            cell: ({ row }) => {
+                const state = linkState(row.original);
+                return (
+                    <div className="min-w-0">
+                        <div className="truncate font-medium">{row.original.name}</div>
+                        <div className="truncate text-xs text-muted-foreground">{row.original.phone || "Sin teléfono"}</div>
+                        <span className={`mt-1 inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium sm:hidden ${TONE_CLASS[state.tone]}`}>
+                            {state.label}
+                        </span>
+                    </div>
+                );
+            },
+        },
         {
             accessorKey: "createdAt",
             header: "Fecha de Creación",
             enableSorting: true,
+            meta: { className: "hidden sm:table-cell" },
             cell: ({ row }) => formatDate(row.original.createdAt),
         },
         {
             id: "link",
             header: "Enlace del mecánico",
             enableSorting: false,
+            meta: { className: "hidden sm:table-cell" },
             cell: ({ row }) => {
                 const state = linkState(row.original);
                 return (

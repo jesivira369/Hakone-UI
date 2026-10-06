@@ -3,7 +3,7 @@
 import { Check, Link2, MessageCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSendWhatsApp } from "@/components/ui/WhatsAppShareButton";
 import { canShareService, copyTrackingLink } from "@/lib/shareService";
 import { formatFolio } from "@/lib/whatsapp";
@@ -28,10 +28,10 @@ export function ServiceCreatedDialog({ service, onClose }: { service: Service; o
 
     return (
         <Dialog open onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-[min(95vw,28rem)]">
+            <DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-lg">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                    <DialogTitle className="flex items-center gap-2 pr-6 text-left leading-snug">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
                             <Check size={16} />
                         </span>
                         Servicio creado · Orden {formatFolio(service.number)}
@@ -42,21 +42,24 @@ export function ServiceCreatedDialog({ service, onClose }: { service: Service; o
                         ? "Envía el comprobante al cliente: tiene el número de orden y un enlace para seguir el estado de su bici."
                         : "El Cliente Ocasional no recibe comprobante. Anota el número de orden para identificar la bici."}
                 </p>
-                <DialogFooter className="gap-2 sm:gap-2">
+                {/* Apilado: el botón principal a todo el ancho y los secundarios debajo, para que nada se desborde */}
+                <div className="grid gap-2">
                     {shareable && (
-                        <>
-                            <Button onClick={() => void send("receipt", service)} disabled={sending} className="w-full sm:w-auto">
-                                <MessageCircle size={16} className="mr-2" /> Enviar comprobante por WhatsApp
-                            </Button>
-                            <Button variant="outline" onClick={() => void handleCopy()} className="w-full sm:w-auto">
-                                <Link2 size={16} className="mr-2" /> Copiar enlace
-                            </Button>
-                        </>
+                        <Button onClick={() => void send("receipt", service)} disabled={sending} className="h-11 w-full">
+                            <MessageCircle size={16} className="mr-2 shrink-0" /> Enviar comprobante por WhatsApp
+                        </Button>
                     )}
-                    <Button variant={shareable ? "ghost" : "default"} onClick={onClose} className="w-full sm:w-auto">
-                        {shareable ? "Ahora no" : "Listo"}
-                    </Button>
-                </DialogFooter>
+                    <div className={shareable ? "grid grid-cols-2 gap-2" : "grid"}>
+                        {shareable && (
+                            <Button variant="outline" onClick={() => void handleCopy()} className="w-full">
+                                <Link2 size={16} className="mr-2 shrink-0" /> Copiar enlace
+                            </Button>
+                        )}
+                        <Button variant={shareable ? "ghost" : "default"} onClick={onClose} className="w-full">
+                            {shareable ? "Ahora no" : "Listo"}
+                        </Button>
+                    </div>
+                </div>
             </DialogContent>
         </Dialog>
     );

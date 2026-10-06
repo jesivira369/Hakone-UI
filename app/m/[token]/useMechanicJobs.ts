@@ -3,16 +3,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchJobs, JobsApiError, updateJobStatus } from "./api";
 import type { JobItem, Section } from "./types";
+import { DEFAULT_VIEW, loadView, saveView, type JobView } from "./viewOptions";
 
 interface SectionState {
   items: JobItem[];
   /** Última página cargada (0 = todavía no se pidió). */
   page: number;
   totalPages: number;
+  /** Trabajos de la sección que cumplen el filtro actual. */
+  matching: number;
   loading: boolean;
 }
 
-const EMPTY: SectionState = { items: [], page: 0, totalPages: 0, loading: false };
+const EMPTY: SectionState = { items: [], page: 0, totalPages: 0, matching: 0, loading: false };
 
 /** Al volver a la pestaña solo se recarga si la lista tiene más de 30 s: evita pedidos repetidos sin necesidad. */
 const STALE_AFTER_MS = 30_000;
@@ -32,6 +35,9 @@ export function useMechanicJobs(token: string) {
   const [sections, setSections] = useState<Record<Section, SectionState>>({ todo: EMPTY, ready: EMPTY });
   const [counts, setCounts] = useState<Record<Section, number>>({ todo: 0, ready: 0 });
   const [header, setHeader] = useState<{ mechanicName: string; shopName: string } | null>(null);
+  // Orden y filtro: se recuerdan en este dispositivo. Cambiarlos recarga la lista desde la primera página.
+  // (Se lee al iniciar el estado para no hacer una primera carga con valores por defecto y otra después.)
+  const [view, setView] = useState<JobView>(() => (typeof window === "undefined" ? DEFAULT_VIEW : loadView(token)));
   const [readyOpen, setReadyOpen] = useState(false);
   // Espejo de `readyOpen` para que `reload` no cambie de identidad al abrir/cerrar la sección.
   const readyOpenRef = useRef(false);
@@ -53,7 +59,7 @@ export function useMechanicJobs(token: string) {
       const gen = generation.current;
       patchSection(section, { loading: true });
       try {
-        const data = await fetchJobs(token, section, page);
+        const data = await fetchJobs(token, section, page, view);
         if (gen !== generation.current) return;
         setHeader({ mechanicName: data.mechanicName, shopName: data.shopName });
         setCounts(data.counts);
@@ -64,6 +70,7 @@ export function useMechanicJobs(token: string) {
             items: page === 1 ? data.services : mergeById(s[section].items, data.services),
             page: data.page,
             totalPages: data.totalPages,
+            matching: data.matching,
             loading: false,
           },
         }));
@@ -74,7 +81,7 @@ export function useMechanicJobs(token: string) {
         if (err instanceof JobsApiError && err.status === 404) setUnavailable(true);
       }
     },
-    [token, patchSection],
+    [token, view, patchSection],
   );
 
   const reload = useCallback(() => {
@@ -84,6 +91,11 @@ export function useMechanicJobs(token: string) {
     if (readyOpenRef.current) void loadPage("ready", 1);
     else setSections((s) => ({ ...s, ready: EMPTY }));
   }, [loadPage]);
+
+  const changeView = (next: JobView) => {
+    setView(next);
+    saveView(token, next);
+  };
 
   useEffect(() => {
     reload();
@@ -121,5 +133,5 @@ export function useMechanicJobs(token: string) {
     }
   };
 
-  return { sections, counts, header, readyOpen, unavailable, busyId, reload, loadMore, toggleReady, changeStatus };
+  return { sections, counts, header, view, changeView, readyOpen, unavailable, busyId, reload, loadMore, toggleReady, changeStatus };
 }

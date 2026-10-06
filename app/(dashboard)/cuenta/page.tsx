@@ -264,7 +264,7 @@ export default function CuentaPage() {
             </div>
 
             <Dialog open={showLogoutAllModal} onOpenChange={setShowLogoutAllModal}>
-                <DialogContent>
+                <DialogContent className="w-[calc(100%-2rem)] rounded-lg">
                     <DialogHeader>
                         <DialogTitle>Cerrar sesión en todos los dispositivos</DialogTitle>
                     </DialogHeader>

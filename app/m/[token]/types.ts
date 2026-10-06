@@ -22,6 +22,8 @@ export interface JobsPage {
   page: number;
   limit: number;
   totalPages: number;
+  /** Trabajos de esta sección que cumplen el filtro (los `counts` son los totales sin filtrar). */
+  matching: number;
   counts: Record<Section, number>;
   services: JobItem[];
 }

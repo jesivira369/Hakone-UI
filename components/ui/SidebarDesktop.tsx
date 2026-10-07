@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { SidebarNavContent } from "./SidebarNavContent";
 
 const SIDEBAR_WIDTH_EXPANDED = 224; // 14rem
-const SIDEBAR_WIDTH_COLLAPSED = 80;  // 5rem
+const SIDEBAR_WIDTH_COLLAPSED = 56;  // 3.5rem: botón de 40px + 8px de padding a cada lado
 
 interface SidebarDesktopProps {
   isExpanded: boolean;

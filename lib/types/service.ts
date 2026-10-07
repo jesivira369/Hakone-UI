@@ -26,6 +26,8 @@ export interface Service {
   isReminderActive: boolean;
   isUrgent?: boolean;
   paidAt?: string | null;
+  /** Cuándo el cliente retiró la bici; null/ausente = sigue en el taller. */
+  pickedUpAt?: string | null;
   paidAmount?: number | null;
   paymentMethod?: PaymentMethod | null;
   scheduledReminderDate?: string | null;

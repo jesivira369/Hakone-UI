@@ -31,8 +31,12 @@ export function SidebarNavContent({ showLabels = true, className }: SidebarNavCo
         <li key={item.href}>
           <Link
             href={item.href}
+            title={showLabels ? undefined : item.label}
+            aria-label={item.label}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "flex items-center rounded-lg text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              // Colapsado: botón cuadrado de 40px que abraza al ícono; expandido: fila con etiqueta.
+              showLabels ? "gap-3 px-3 py-2" : "h-10 w-10 justify-center",
               pathname === item.href && "bg-accent"
             )}
           >

@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { DeleteModal } from "@/components/ui/DeleteModal";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "react-toastify";
-import { StatsOverview, RevenueStats, ExpenseStats, ServicesByStatus, TopClientItem, RevenueByPaymentMethod } from "@/lib/types";
+import { DashboardStats, InShopSummary } from "@/lib/types/stats";
 import { ExpenseCategoryLabels, PaymentMethod, PaymentMethodLabels, ServiceStatus, ServiceStatusLabels } from "@/lib/enums";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
@@ -139,56 +139,38 @@ export default function DashboardOverview() {
     const [appliedMethod, setAppliedMethod] = useState("ALL");
     const methodExtra: Record<string, string> = appliedMethod === "ALL" ? {} : { paymentMethod: appliedMethod };
 
-    const { data: overview, isLoading: overviewLoading } = useQuery<StatsOverview>({
+    // Una sola request trae overview, ingresos, gastos, estados, top clientes y métodos de pago.
+    // Las estadísticas cambian solo cuando se modifica/cobra un servicio, y esas mutaciones invalidan
+    // `stats-*` (lib/invalidateServiceQueries.ts), así que se pueden mantener frescas 5 minutos.
+    const { data: dashboard, isLoading: dashboardLoading } = useQuery<DashboardStats>({
         // Las tarjetas comparten el filtro con los gráficos; si no, arriba se ve
         // el histórico y abajo el período, y parece que los números no cierran.
-        queryKey: ["stats-overview", appliedFrom, appliedTo, appliedMethod],
-        queryFn: async () => {
-            const { data } = await api.get(`/statistics/overview${buildStatsQuery(appliedFrom, appliedTo, methodExtra)}`);
-            return data;
-        },
-    });
-
-    const { data: revenue, isLoading: revenueLoading } = useQuery<RevenueStats>({
-        queryKey: ["stats-revenue", appliedFrom, appliedTo, appliedMethod],
-        queryFn: async () => {
-            const { data } = await api.get(`/statistics/revenue${buildStatsQuery(appliedFrom, appliedTo, methodExtra)}`);
-            return data;
-        },
-    });
-
-    const { data: expenses, isLoading: expensesLoading } = useQuery<ExpenseStats>({
-        queryKey: ["stats-expenses", appliedFrom, appliedTo],
-        queryFn: async () => {
-            const { data } = await api.get(`/statistics/expenses${buildStatsQuery(appliedFrom, appliedTo)}`);
-            return data;
-        },
-    });
-
-    const { data: byStatus, isLoading: statusLoading } = useQuery<ServicesByStatus>({
-        queryKey: ["stats-by-status", appliedFrom, appliedTo],
-        queryFn: async () => {
-            const { data } = await api.get(`/statistics/services-by-status${buildStatsQuery(appliedFrom, appliedTo)}`);
-            return data;
-        },
-    });
-
-    const { data: topClients, isLoading: topClientsLoading } = useQuery<TopClientItem[]>({
-        queryKey: ["stats-top-clients", appliedFrom, appliedTo, appliedMethod],
+        queryKey: ["stats-dashboard", appliedFrom, appliedTo, appliedMethod],
+        staleTime: 5 * 60 * 1000,
         queryFn: async () => {
             const { data } = await api.get(
-                `/statistics/top-clients${buildStatsQuery(appliedFrom, appliedTo, { limit: "5", ...methodExtra })}`,
+                `/statistics/dashboard${buildStatsQuery(appliedFrom, appliedTo, { topClientsLimit: "5", ...methodExtra })}`,
             );
             return data;
         },
     });
+    const overview = dashboard?.overview;
+    const revenue = dashboard?.revenue;
+    const expenses = dashboard?.expenses;
+    const byStatus = dashboard?.byStatus;
+    const topClients = dashboard?.topClients;
+    const byMethod = dashboard?.revenueByMethod;
+    const overviewLoading = dashboardLoading;
+    const revenueLoading = dashboardLoading;
+    const expensesLoading = dashboardLoading;
+    const statusLoading = dashboardLoading;
+    const topClientsLoading = dashboardLoading;
+    const byMethodLoading = dashboardLoading;
 
-    const { data: byMethod, isLoading: byMethodLoading } = useQuery<RevenueByPaymentMethod>({
-        queryKey: ["stats-revenue-by-method", appliedFrom, appliedTo, appliedMethod],
+    const { data: inShop } = useQuery<InShopSummary>({
+        queryKey: ["services-in-shop"],
         queryFn: async () => {
-            const { data } = await api.get(
-                `/statistics/revenue-by-payment-method${buildStatsQuery(appliedFrom, appliedTo, methodExtra)}`,
-            );
+            const { data } = await api.get("/services/in-shop?limit=5");
             return data;
         },
     });
@@ -317,11 +299,46 @@ export default function DashboardOverview() {
     return (
         <div className="grid gap-6">
             {/* Stats Cards */}
-            <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid w-full grid-cols-1 gap-3 min-[360px]:grid-cols-2 md:grid-cols-3 gap-y-3 sm:gap-4 2xl:grid-cols-6">
                 {stats.map((stat, index) => (
                     <StatsCard key={index} {...stat} />
                 ))}
             </div>
+
+            {/* Bicis que siguen en el taller */}
+            {inShop && inShop.total > 0 && (
+                <div className="min-w-0 rounded-xl border bg-card p-4 sm:p-5">
+                    <div className="flex items-center justify-between gap-3">
+                        <h2 className="text-lg font-semibold">
+                            En el taller <span className="text-muted-foreground">({inShop.total})</span>
+                        </h2>
+                        <Link href="/services?pickedUp=false" className="text-sm text-primary hover:underline">
+                            Ver todas
+                        </Link>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Bicis sin retirar, las más antiguas primero.</p>
+                    <ul className="mt-3 divide-y">
+                        {inShop.items.map((item) => {
+                            const days = Math.max(0, Math.floor((Date.now() - new Date(item.createdAt).getTime()) / 86_400_000));
+                            return (
+                                <li key={item.id}>
+                                    <Link href={`/services/${item.id}`} className="flex items-center justify-between gap-3 py-2 hover:bg-muted/40">
+                                        <span className="min-w-0">
+                                            <span className="block truncate text-sm font-medium">{item.client?.name ?? "—"}</span>
+                                            <span className="block truncate text-xs text-muted-foreground">
+                                                {item.bicycle ? `${item.bicycle.brand} ${item.bicycle.model}` : "Bici ocasional"}
+                                            </span>
+                                        </span>
+                                        <span className="shrink-0 text-xs text-muted-foreground">
+                                            {days === 0 ? "hoy" : `hace ${days} ${days === 1 ? "día" : "días"}`}
+                                        </span>
+                                    </Link>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
+            )}
 
             {/* Filtros de fecha + Export */}
             <div className="flex flex-wrap items-end gap-3">
@@ -473,12 +490,12 @@ export default function DashboardOverview() {
                     if (filtered.length === 0)
                         return <div className="mt-3 text-sm text-muted-foreground">Sin eventos de este tipo esta semana.</div>;
                     return (
-                        <div className="mt-3 grid gap-2">
+                        <div className="mt-3 grid grid-cols-1 gap-2">
                             {filtered.slice(0, 5).map((s, i) => (
                                 <Link
                                     key={`${s.id}-${s.eventType}-${i}`}
                                     href={`/services/${s.id}`}
-                                    className="flex items-center justify-between gap-3 rounded-lg border bg-background/70 px-3 py-2 hover:bg-accent/20"
+                                    className="flex min-w-0 items-center justify-between gap-3 rounded-lg border bg-background/70 px-3 py-2 hover:bg-accent/20"
                                 >
                                     <div className="min-w-0 flex items-center gap-2">
                                         <span
@@ -525,7 +542,7 @@ export default function DashboardOverview() {
                 ) : !reminders || reminders.length === 0 ? (
                     <div className="mt-3 text-sm text-muted-foreground">No hay recordatorios próximos.</div>
                 ) : (
-                    <div className="mt-3 grid gap-2">
+                    <div className="mt-3 grid grid-cols-1 gap-2">
                         {reminders.slice(0, 5).map((r) => {
                             const phone = r.client?.phone?.replace(/\D/g, "") ?? "";
                             const bikeLabel = r.bicycle ? `${r.bicycle.brand} ${r.bicycle.model}` : "";

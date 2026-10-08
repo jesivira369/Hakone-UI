@@ -1,26 +1,46 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { Service } from "@/lib/types";
-import { ServiceCategoryLabels, ServiceStatus, getPaymentMethodLabel, getServiceStatusLabel, getServiceStatusStyle, URGENT_STYLE } from "@/lib/enums";
+import { ServiceCategoryLabels, ServiceStatus, ServiceStatusDescriptions, getPaymentMethodLabel, getServiceStatusLabel, getServiceStatusStyle, URGENT_STYLE } from "@/lib/enums";
 import { formatCurrency, formatDate, partsTotal as calcPartsTotal, serviceTotal } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, MessageCircle } from "lucide-react";
+import { Edit, PackageCheck, PackageOpen } from "lucide-react";
+import { invalidateServiceQueries } from "@/lib/invalidateServiceQueries";
 import { useState } from "react";
 import { ServiceModal } from "@/components/ui/ServiceModal";
 import { ServiceStatusUpdater } from "@/components/ui/ServiceStatusUpdater";
 import { DetailsSkeleton } from "@/components/ui/Skeleton/DetailsSkeleton";
-import { buildWaMeLink, buildWhatsAppReadyMessage } from "@/lib/whatsapp";
+import { formatFolio } from "@/lib/whatsapp";
+import { WhatsAppShareButton } from "@/components/ui/WhatsAppShareButton";
+import { TrackingLinkMenu } from "@/components/ui/TrackingLinkMenu";
 import { toast } from "react-toastify";
-import { useAuth } from "@/context/auth-provider";
 
 export default function ServiceDetails() {
     const { id: serviceId } = useParams();
-    const { user } = useAuth();
     const [editModalOpen, setEditModalOpen] = useState(false);
+    const queryClient = useQueryClient();
+
+    const pickupMutation = useMutation({
+        mutationFn: async (pickedUp: boolean) => {
+            await api.patch(`/services/${serviceId}/pickup`, { pickedUp });
+            return pickedUp;
+        },
+        onSuccess: (pickedUp) => {
+            invalidateServiceQueries(queryClient);
+            toast.success(pickedUp ? "Bici entregada al cliente" : "La bici volvió a figurar en el taller", {
+                className: "bg-green-600 text-white border border-green-700",
+            });
+        },
+        onError: (error) => {
+            toast.error(error.message || "No se pudo actualizar la entrega", {
+                className: "bg-red-600 text-white border border-red-700",
+            });
+        },
+    });
 
     const { data: service, isLoading, error } = useQuery<Service>({
         queryKey: ["service", serviceId],
@@ -41,33 +61,29 @@ export default function ServiceDetails() {
 
     return (
         <div className="min-w-0 space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="text-xl font-bold sm:text-2xl">Detalles del Servicio</h1>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            {/* Título arriba y acciones debajo hasta `lg` (si no, el título quedaba aplastado junto a los botones) */}
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <h1 className="min-w-0 text-xl font-bold sm:text-2xl">
+                    Detalles del Servicio
+                    <span className="ml-2 inline-block whitespace-nowrap rounded-lg bg-primary/10 px-2 py-0.5 align-middle text-base font-bold text-primary">
+                        {formatFolio(service.number)}
+                    </span>
+                </h1>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center [&>*]:min-w-0">
+                    <WhatsAppShareButton service={service} />
+                    <TrackingLinkMenu service={service} />
                     <Button
                         variant="outline"
                         size="sm"
                         className="shrink-0"
-                        onClick={() => {
-                            try {
-                                const phone = service.client?.phone ?? "";
-                                const bikeLabel = service.bicycle ? `${service.bicycle.brand} ${service.bicycle.model}` : "tu bici";
-                                const msg = buildWhatsAppReadyMessage({
-                                    clientName: service.client?.name ?? "",
-                                    bikeLabel,
-                                    shopName: user?.shopName ?? "",
-                                });
-                                const link = buildWaMeLink({ phoneE164: phone, message: msg });
-                                window.open(link, "_blank", "noopener,noreferrer");
-                            } catch (e: unknown) {
-                                const msg = e instanceof Error ? e.message : "No se pudo abrir WhatsApp";
-                                toast.error(msg, {
-                                    className: "bg-red-600 text-white border border-red-700",
-                                });
-                            }
-                        }}
+                        disabled={pickupMutation.isPending}
+                        onClick={() => pickupMutation.mutate(!service.pickedUpAt)}
                     >
-                        <MessageCircle size={16} className="mr-2 text-green-600" /> WhatsApp
+                        {service.pickedUpAt ? (
+                            <><PackageOpen size={16} className="mr-2" /> Marcar en el taller</>
+                        ) : (
+                            <><PackageCheck size={16} className="mr-2" /> Entregar bici</>
+                        )}
                     </Button>
                     <Button variant="outline" size="sm" className="shrink-0" onClick={() => setEditModalOpen(true)}>
                         <Edit size={16} className="mr-2" /> Editar Servicio
@@ -84,7 +100,10 @@ export default function ServiceDetails() {
                         <p className="text-gray-500">Descripción:</p>
                         <p className="font-medium">{service.description}</p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getServiceStatusStyle(service.status).badge}`}>
+                            <span
+                                title={ServiceStatusDescriptions[service.status as ServiceStatus]}
+                                className={`rounded-full px-2 py-0.5 text-xs font-medium ${getServiceStatusStyle(service.status).badge}`}
+                            >
                                 {getServiceStatusLabel(service.status)}
                             </span>
                             {service.isUrgent && (
@@ -94,7 +113,12 @@ export default function ServiceDetails() {
                             )}
                         </div>
                     </div>
-                    <ServiceStatusUpdater service={service} />
+                    <div className="space-y-1">
+                        <ServiceStatusUpdater service={service} />
+                        <p className="text-xs text-muted-foreground">
+                            {ServiceStatusDescriptions[service.status as ServiceStatus]}
+                        </p>
+                    </div>
 
                     <div>
                         <p className="text-gray-500">Mano de obra:</p>
@@ -137,6 +161,12 @@ export default function ServiceDetails() {
                             <p className="font-medium">{formatDate(service.completedAt)}</p>
                         </div>
                     )}
+                    <div>
+                        <p className="text-gray-500">Retiro de la bici:</p>
+                        <p className="font-medium">
+                            {service.pickedUpAt ? `Retirada el ${formatDate(service.pickedUpAt)}` : "En el taller"}
+                        </p>
+                    </div>
                     <div>
                         <p className="text-gray-500">Recordatorio:</p>
                         <p className="font-medium">

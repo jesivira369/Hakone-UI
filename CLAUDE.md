@@ -58,6 +58,16 @@ excepciones para las rutas de auth (si no, un login fallido haría un loop).
 TanStack Query para todo lo que viene de la API. No metas datos del servidor en
 `useState`.
 
+Caché (`app/providers.tsx`): `staleTime` 30 s y **sin** refetch al volver a la
+pestaña. El dashboard usa `staleTime` de 5 min con una sola query
+(`stats-dashboard` → `GET /statistics/dashboard`); no vuelvas a partirla en varias.
+Los datos se mantienen correctos porque toda mutación de servicios llama a
+`invalidateServiceQueries()`. No uses `Cache-Control` en estadísticas: el navegador
+serviría datos viejos aunque React Query invalide.
+
+Las `columns` de una `DataTable` deben ir en `useMemo`: si cambian en cada render,
+React remonta las celdas y los menús abiertos (⋮) se cierran solos.
+
 ---
 
 ## Reglas de negocio a respetar en la UI
@@ -82,6 +92,30 @@ método de pago → `POST /services/:id/pay`). Los inputs numéricos del formula
 servicio usan `NumericInput` (permite vaciar mientras se edita). Al modificar un
 servicio, invalidá con `invalidateServiceQueries()` (detalle, listados,
 calendario y `stats-*`). Specs en `Hakone-API/docs/specs/`.
+
+### Retiro de la bici
+
+`pickedUpAt` (null = en el taller) es independiente del estado y del cobro. Se
+marca desde el menú ⋮ de Servicios o el botón del detalle (`PATCH /services/:id/pickup`).
+El dashboard muestra la tarjeta "En el taller" (`GET /services/in-shop`).
+
+### Folio, comprobante y enlaces públicos
+
+- Cada servicio tiene folio (`number`, `#0123` con `formatFolio`). El botón de WhatsApp (`WhatsAppShareButton`,
+  `lib/shareService.ts`) arma el comprobante o el aviso de lista con el enlace `/s/{código}`. No aparece para el
+  Cliente Ocasional (`canShareService`). `window.open` se llama **antes** del `await` (los móviles lo bloquean si no).
+- `/s/[code]` (cliente) y `/m/[token]` (mecánico) son **públicas**: están en `lib/publicRoutes.ts`. Si agregás otra
+  ruta pública, sumala ahí; si no, el AuthProvider pide `/auth/me`, recibe 401 y redirige a `/login`.
+- `/s/[code]` se renderiza en el servidor, con `noindex` y vista previa genérica. No muestra precios ni teléfonos.
+- El proxy de Next reenvía la IP real del cliente a la API (`x-client-ip` + `BFF_SECRET`) para el límite de peticiones.
+
+### Servicios y calendario (responsive)
+
+- La tabla de Servicios muestra solo lo esencial (cliente+bici, descripción, estado, total,
+  creado, retiro) con acciones en un menú ⋮; toda la fila navega al detalle. No debe haber
+  scroll horizontal en tablet ni laptop chica (solo en teléfono). Medilo a 768 y 1024 px.
+- El calendario usa `GET /services/calendar` (sin el tope de 100). PC: grilla mensual.
+  Teléfono: agenda por semana o por día. La leyenda son chips que filtran estados.
 
 ### Suscripción vencida
 
@@ -129,6 +163,7 @@ necesitás un rango, filtralo del lado del servidor (como hace el calendario con
 |---|---|
 | `NEXT_PUBLIC_API_URL` | Base de la API **sin** `/api/v1`. La usa el proxy del lado del servidor |
 | `NEXT_PUBLIC_SUPPORT_WHATSAPP` | Solo dígitos, sin `+` (va dentro de un link `wa.me/`) |
+| `BFF_SECRET` | Secreto compartido con la API (mismo valor en ambos servicios) para que el límite de peticiones use la IP real del cliente. Opcional: sin él todo funciona como antes |
 | `NEXT_PUBLIC_GA_ID` | Measurement ID de Google Analytics 4 (`G-XXXXXXX`). Vacío = no carga el script |
 
 Ojo: las `NEXT_PUBLIC_*` se inlinean **en tiempo de build**. Cambiarlas exige

@@ -19,6 +19,8 @@ export interface ServicePartInput {
 
 export interface Service {
   id: number;
+  /** Folio correlativo del taller (#0123). */
+  number: number;
   description: string;
   price: number;
   status: string;
@@ -26,6 +28,8 @@ export interface Service {
   isReminderActive: boolean;
   isUrgent?: boolean;
   paidAt?: string | null;
+  /** Cuándo el cliente retiró la bici; null/ausente = sigue en el taller. */
+  pickedUpAt?: string | null;
   paidAmount?: number | null;
   paymentMethod?: PaymentMethod | null;
   scheduledReminderDate?: string | null;

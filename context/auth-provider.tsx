@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { AuthUser } from "@/lib/types";
+import { isPublicPath } from "@/lib/publicRoutes";
 import { getMe, login as apiLogin, logout as apiLogout } from "@/lib/auth";
 
 interface AuthContextType {
@@ -29,14 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (async () => {
             // Evita spamear /auth/me en pantallas públicas (previene loops y requests innecesarios).
             // Importante: `/` ahora es landing pública de marketing.
-            if (
-                pathname === "/" ||
-                pathname?.startsWith("/login") ||
-                pathname?.startsWith("/register") ||
-                pathname?.startsWith("/contact") ||
-                pathname?.startsWith("/privacidad") ||
-                pathname?.startsWith("/terminos")
-            ) {
+            if (isPublicPath(pathname)) {
                 if (!cancelled) setIsLoading(false);
                 return;
             }
@@ -56,16 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 // En rutas protegidas, sin sesión => /login.
                 // (El interceptor también cubre 401; esto cubre timeouts/errores/redes.)
-                if (
-                    !cancelled &&
-                    pathname &&
-                    pathname !== "/" &&
-                    !pathname.startsWith("/login") &&
-                    !pathname.startsWith("/register") &&
-                    !pathname.startsWith("/contact") &&
-                    !pathname.startsWith("/privacidad") &&
-                    !pathname.startsWith("/terminos")
-                ) {
+                if (!cancelled && pathname && !isPublicPath(pathname)) {
                     router.replace("/login");
                 }
             } finally {

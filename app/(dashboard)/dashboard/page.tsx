@@ -323,9 +323,11 @@ export default function DashboardOverview() {
                             return (
                                 <li key={item.id}>
                                     <Link href={`/services/${item.id}`} className="flex items-center justify-between gap-3 py-2 hover:bg-muted/40">
-                                        <span className="min-w-0 truncate text-sm">
-                                            {item.client?.name ?? "—"} ·{" "}
-                                            {item.bicycle ? `${item.bicycle.brand} ${item.bicycle.model}` : "Bici ocasional"}
+                                        <span className="min-w-0">
+                                            <span className="block truncate text-sm font-medium">{item.client?.name ?? "—"}</span>
+                                            <span className="block truncate text-xs text-muted-foreground">
+                                                {item.bicycle ? `${item.bicycle.brand} ${item.bicycle.model}` : "Bici ocasional"}
+                                            </span>
                                         </span>
                                         <span className="shrink-0 text-xs text-muted-foreground">
                                             {days === 0 ? "hoy" : `hace ${days} ${days === 1 ? "día" : "días"}`}
@@ -488,12 +490,12 @@ export default function DashboardOverview() {
                     if (filtered.length === 0)
                         return <div className="mt-3 text-sm text-muted-foreground">Sin eventos de este tipo esta semana.</div>;
                     return (
-                        <div className="mt-3 grid gap-2">
+                        <div className="mt-3 grid grid-cols-1 gap-2">
                             {filtered.slice(0, 5).map((s, i) => (
                                 <Link
                                     key={`${s.id}-${s.eventType}-${i}`}
                                     href={`/services/${s.id}`}
-                                    className="flex items-center justify-between gap-3 rounded-lg border bg-background/70 px-3 py-2 hover:bg-accent/20"
+                                    className="flex min-w-0 items-center justify-between gap-3 rounded-lg border bg-background/70 px-3 py-2 hover:bg-accent/20"
                                 >
                                     <div className="min-w-0 flex items-center gap-2">
                                         <span
@@ -540,7 +542,7 @@ export default function DashboardOverview() {
                 ) : !reminders || reminders.length === 0 ? (
                     <div className="mt-3 text-sm text-muted-foreground">No hay recordatorios próximos.</div>
                 ) : (
-                    <div className="mt-3 grid gap-2">
+                    <div className="mt-3 grid grid-cols-1 gap-2">
                         {reminders.slice(0, 5).map((r) => {
                             const phone = r.client?.phone?.replace(/\D/g, "") ?? "";
                             const bikeLabel = r.bicycle ? `${r.bicycle.brand} ${r.bicycle.model}` : "";

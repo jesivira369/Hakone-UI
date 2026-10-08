@@ -40,6 +40,19 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }
     headers.delete("authorization");
   }
 
+  // La API limita peticiones por IP. Todo el tráfico llega desde este servidor, así que reenviamos la IP real del
+  // cliente junto con un secreto compartido (BFF_SECRET); la API solo confía en el header si el secreto coincide.
+  headers.delete("x-client-ip");
+  headers.delete("x-bff-secret");
+  const bffSecret = process.env.BFF_SECRET;
+  if (bffSecret) {
+    const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    if (forwarded) {
+      headers.set("x-client-ip", forwarded);
+      headers.set("x-bff-secret", bffSecret);
+    }
+  }
+
   // Evitar problemas con compresión y streaming en algunos entornos.
   headers.delete("accept-encoding");
 

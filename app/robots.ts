@@ -19,6 +19,9 @@ export default function robots(): MetadataRoute.Robots {
           "/admin",
           "/cuenta",
           "/api",
+          // Seguimiento del cliente y vista del mecánico: enlaces privados, no deben indexarse.
+          "/s/",
+          "/m/",
         ],
       },
     ],

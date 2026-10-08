@@ -12,7 +12,7 @@ const api = axios.create({
 // NO queremos redirigir al login para evitar loops durante el propio login/register/logout.
 // Importante: NO incluir /auth/me aquí, porque un 401 en /me debe llevar al usuario a /login.
 const publicApiRoutes = ["/auth/login", "/auth/register", "/auth/logout"];
-const publicPages = ["/login", "/register", "/register/success"];
+const publicPages = ["/login", "/register", "/register/success", "/s/", "/m/"];
 
 api.interceptors.response.use(
   (response) => response,

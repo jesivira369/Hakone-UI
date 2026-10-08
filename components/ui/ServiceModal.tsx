@@ -30,6 +30,7 @@ import { toast } from "react-toastify";
 import { PhoneInputE164 } from "@/components/ui/PhoneInputE164";
 import { Switch } from "@/components/ui/switch";
 import { NumericInput } from "@/components/ui/NumericInput";
+import { ServiceCreatedDialog } from "@/components/ui/ServiceCreatedDialog";
 import {
     ServiceCategory,
     ServiceCategoryLabels,
@@ -102,6 +103,7 @@ interface ServiceModalProps {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
+    const [created, setCreated] = useState<Service | null>(null);
     const queryClient = useQueryClient();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [price, setPrice] = useState<number | null>(null);
@@ -156,7 +158,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     const watchedCategory = (watch("category") as ServiceCategory | undefined) ?? ServiceCategory.REPARACION_PUNTUAL;
     const watchedReminder = Boolean(watch("isReminderActive"));
     const watchedUrgent = Boolean(watch("isUrgent"));
-    // Al editar no se cambia el estado desde acá (eso se hace en el detalle); las reglas usan el estado actual.
+    // Al editar no se cambia el estado desde aquí (eso se hace en el detalle); las reglas usan el estado actual.
     const effectiveStatus: string = service ? service.status : (watch("status") as string);
 
     // No hay envío automático: el aviso aparece en el dashboard para contactar al cliente.
@@ -428,7 +430,7 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                 category: formData.category,
                 isReminderActive: formData.isReminderActive,
                 isUrgent: formData.isUrgent,
-                // Al editar no se toca el estado desde acá (se cambia en el detalle).
+                // Al editar no se toca el estado desde aquí (se cambia en el detalle).
                 ...(service ? {} : { status: formData.status }),
                 bicycleId: resolvedBikeId,
                 clientId: resolvedClientId,
@@ -440,17 +442,21 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                 })),
             };
 
+            let createdService: Service | null = null;
             if (service) {
                 await api.patch(`/services/${service.id}`, payload);
             } else {
-                await api.post("/services", payload);
+                const { data } = await api.post<Service>("/services", payload);
+                createdService = data;
             }
 
             invalidateServiceQueries(queryClient);
             toast.success(service ? "Servicio actualizado con éxito" : "Servicio creado con éxito", {
                 className: "bg-green-600 text-white border border-green-700",
             });
-            onClose();
+            // Al crear, en vez de cerrar se ofrece enviar el comprobante (el formulario queda oculto detrás).
+            if (createdService) setCreated(createdService);
+            else onClose();
         } catch {
             toast.error("Ocurrió un error al guardar el servicio", {
                 className: "bg-red-600 text-white border border-red-700",
@@ -596,7 +602,9 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
     // ── Render ──────────────────────────────────────────────────────────────
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <>
+        {created && <ServiceCreatedDialog service={created} onClose={onClose} />}
+        <Dialog open={isOpen && !created} onOpenChange={onClose}>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{service ? "Editar Servicio" : "Nuevo Servicio"}</DialogTitle>
@@ -987,5 +995,6 @@ export function ServiceModal({ isOpen, onClose, service }: ServiceModalProps) {
                 </form>
             </DialogContent>
         </Dialog>
+        </>
     );
 }

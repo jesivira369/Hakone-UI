@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserModal } from "@/components/ui/UserModal";
+import { MoreVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "react-toastify";
 import { formatDate } from "@/lib/utils";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -265,16 +267,34 @@ export default function AdminPage() {
         },
         {
             id: "actions",
-            header: "Acciones",
+            header: "",
             enableSorting: false,
             cell: ({ row }) => (
-                <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setPaymentTarget(row.original)}>
-                        Registrar pago
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setHistoryTarget(row.original)}>
-                        Historial
-                    </Button>
+                <div className="flex justify-end">
+                    <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost" aria-label="Acciones del taller" className="h-8 w-8 p-0">
+                                <MoreVertical size={16} />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onSelect={() => setPaymentTarget(row.original)}>Registrar pago</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setHistoryTarget(row.original)}>Historial de pagos</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onSelect={() => {
+                                    // Cierra las sesiones abiertas de este taller (no afecta a otros).
+                                    if (!window.confirm(`¿Cerrar todas las sesiones de ${row.original.shopName}?`)) return;
+                                    api
+                                        .post(`/users/${row.original.id}/logout-all`)
+                                        .then(() => toast.success("Sesiones cerradas", { className: "bg-green-600 text-white border border-green-700" }))
+                                        .catch(() => toast.error("No se pudieron cerrar las sesiones", { className: "bg-red-600 text-white border border-red-700" }));
+                                }}
+                            >
+                                Cerrar sesiones
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             ),
         },
@@ -386,6 +406,7 @@ export default function AdminPage() {
                     totalPage={talleres?.totalPages ?? 0}
                     sortBy={sortBy} setSortBy={setSortBy}
                     sortOrder={sortOrder} setSortOrder={setSortOrder}
+                    stickyLastColumn
                 />
             )}
             {tab === "contactos" && (

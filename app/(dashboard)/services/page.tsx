@@ -9,7 +9,7 @@ import { ServiceModal } from "@/components/ui/ServiceModal";
 import api from "@/lib/axiosInstance";
 import { ColumnDef } from "@tanstack/react-table";
 import { Service } from "@/lib/types";
-import { MoreVertical, Pencil, PackageCheck, PackageOpen, Trash2, SlidersHorizontal } from "lucide-react";
+import { MessageCircle, MoreVertical, Pencil, PackageCheck, PackageOpen, Trash2, SlidersHorizontal } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { DeleteModal } from "@/components/ui/DeleteModal";
@@ -33,6 +33,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatCurrency, formatDate, serviceTotal } from "@/lib/utils";
 import { invalidateServiceQueries } from "@/lib/invalidateServiceQueries";
 import { toast } from "react-toastify";
+import { formatFolio } from "@/lib/whatsapp";
+import { canShareService } from "@/lib/shareService";
+import { useSendWhatsApp } from "@/components/ui/WhatsAppShareButton";
 import { TableSkeleton } from "@/components/ui/Skeleton/TableSkeleton";
 
 /** dd/mm/aa: más corta que `formatDate` para que la tabla entre en tablets. */
@@ -47,6 +50,7 @@ type PickupFilter = "ALL" | "false" | "true";
 
 function ServicesContent() {
     const queryClient = useQueryClient();
+    const { send: sendWhatsApp } = useSendWhatsApp();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [search, setSearch] = useState("");
@@ -128,6 +132,7 @@ function ServicesContent() {
     // Columnas esenciales; el resto (mecánico, repuestos, método de pago, fechas de entrega/cobro) vive en el detalle.
     // Memoizadas: si el array cambia en cada render, React remonta las celdas y el menú ⋮ abierto se cierra solo.
     const pickup = pickupMutation.mutate;
+    const send = sendWhatsApp;
     const columns = useMemo<ColumnDef<Service>[]>(() => [
         {
             id: "client.name",
@@ -154,6 +159,7 @@ function ServicesContent() {
             enableSorting: false,
             cell: ({ row }) => (
                 <div title={row.original.description} className="max-w-[7rem] truncate text-muted-foreground md:max-w-[8rem] lg:max-w-[9rem] xl:max-w-[16rem]">
+                    <span className="mr-1 font-medium text-foreground">{formatFolio(row.original.number)}</span>
                     {row.original.description}
                 </div>
             ),
@@ -193,7 +199,7 @@ function ServicesContent() {
             enableSorting: true,
             cell: ({ row }) =>
                 row.original.pickedUpAt ? (
-                    // La fecha exacta se ve en el detalle; acá solo el estado (tooltip con la fecha).
+                    // La fecha exacta se ve en el detalle; aquí solo el estado (tooltip con la fecha).
                     <span
                         className="whitespace-nowrap rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
                         title={`Retirada el ${formatDate(row.original.pickedUpAt)}`}
@@ -235,6 +241,16 @@ function ServicesContent() {
                                         <><PackageCheck size={14} className="mr-2" /> Entregar bici</>
                                     )}
                                 </DropdownMenuItem>
+                                {canShareService(service) && (
+                                    <>
+                                        <DropdownMenuItem onSelect={() => void send("receipt", service)}>
+                                            <MessageCircle size={14} className="mr-2" /> Enviar comprobante
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => void send("ready", service)}>
+                                            <MessageCircle size={14} className="mr-2" /> Avisar que está lista
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
@@ -248,7 +264,7 @@ function ServicesContent() {
                 );
             },
         },
-    ], [pickup]);
+    ], [pickup, send]);
 
     if (isLoading && !servicesData) return <TableSkeleton />;
     if (error) return <p>Error al cargar los servicios.</p>;

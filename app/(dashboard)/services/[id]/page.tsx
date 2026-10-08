@@ -8,19 +8,19 @@ import { ServiceCategoryLabels, ServiceStatus, ServiceStatusDescriptions, getPay
 import { formatCurrency, formatDate, partsTotal as calcPartsTotal, serviceTotal } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, MessageCircle, PackageCheck, PackageOpen } from "lucide-react";
+import { Edit, PackageCheck, PackageOpen } from "lucide-react";
 import { invalidateServiceQueries } from "@/lib/invalidateServiceQueries";
 import { useState } from "react";
 import { ServiceModal } from "@/components/ui/ServiceModal";
 import { ServiceStatusUpdater } from "@/components/ui/ServiceStatusUpdater";
 import { DetailsSkeleton } from "@/components/ui/Skeleton/DetailsSkeleton";
-import { buildWaMeLink, buildWhatsAppReadyMessage } from "@/lib/whatsapp";
+import { formatFolio } from "@/lib/whatsapp";
+import { WhatsAppShareButton } from "@/components/ui/WhatsAppShareButton";
+import { TrackingLinkMenu } from "@/components/ui/TrackingLinkMenu";
 import { toast } from "react-toastify";
-import { useAuth } from "@/context/auth-provider";
 
 export default function ServiceDetails() {
     const { id: serviceId } = useParams();
-    const { user } = useAuth();
     const [editModalOpen, setEditModalOpen] = useState(false);
     const queryClient = useQueryClient();
 
@@ -61,34 +61,17 @@ export default function ServiceDetails() {
 
     return (
         <div className="min-w-0 space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="text-xl font-bold sm:text-2xl">Detalles del Servicio</h1>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0"
-                        onClick={() => {
-                            try {
-                                const phone = service.client?.phone ?? "";
-                                const bikeLabel = service.bicycle ? `${service.bicycle.brand} ${service.bicycle.model}` : "tu bici";
-                                const msg = buildWhatsAppReadyMessage({
-                                    clientName: service.client?.name ?? "",
-                                    bikeLabel,
-                                    shopName: user?.shopName ?? "",
-                                });
-                                const link = buildWaMeLink({ phoneE164: phone, message: msg });
-                                window.open(link, "_blank", "noopener,noreferrer");
-                            } catch (e: unknown) {
-                                const msg = e instanceof Error ? e.message : "No se pudo abrir WhatsApp";
-                                toast.error(msg, {
-                                    className: "bg-red-600 text-white border border-red-700",
-                                });
-                            }
-                        }}
-                    >
-                        <MessageCircle size={16} className="mr-2 text-green-600" /> WhatsApp
-                    </Button>
+            {/* Título arriba y acciones debajo hasta `lg` (si no, el título quedaba aplastado junto a los botones) */}
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <h1 className="min-w-0 text-xl font-bold sm:text-2xl">
+                    Detalles del Servicio
+                    <span className="ml-2 inline-block whitespace-nowrap rounded-lg bg-primary/10 px-2 py-0.5 align-middle text-base font-bold text-primary">
+                        {formatFolio(service.number)}
+                    </span>
+                </h1>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center [&>*]:min-w-0">
+                    <WhatsAppShareButton service={service} />
+                    <TrackingLinkMenu service={service} />
                     <Button
                         variant="outline"
                         size="sm"

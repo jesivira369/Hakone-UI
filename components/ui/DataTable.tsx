@@ -6,7 +6,16 @@ import {
     useReactTable,
     getPaginationRowModel,
     ColumnDef,
+    RowData,
 } from "@tanstack/react-table";
+
+declare module "@tanstack/react-table" {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    interface ColumnMeta<TData extends RowData, TValue> {
+        /** Clases extra para el encabezado y las celdas de la columna (por ejemplo `hidden sm:table-cell`). */
+        className?: string;
+    }
+}
 import { Table, TableHeader, TableBody, TableRow, TableCell } from "@/components/ui/Table";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -72,7 +81,7 @@ export function DataTable<TData>({
 
     return (
         <div className="w-full min-w-0">
-            <div className="overflow-x-auto rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border bg-card">
                 <Table className="w-full">
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
@@ -84,7 +93,7 @@ export function DataTable<TData>({
                                     return (
                                         <TableCell
                                             key={header.id}
-                                            className={`font-semibold ${isLast ? "text-right" : ""} ${canSort ? "cursor-pointer select-none" : ""} ${isLast && stickyLastColumn ? STICKY_LAST : ""}`}
+                                            className={`font-semibold ${isLast ? "text-right" : ""} ${canSort ? "cursor-pointer select-none" : ""} ${isLast && stickyLastColumn ? STICKY_LAST : ""} ${header.column.columnDef.meta?.className ?? ""}`}
                                             onClick={canSort ? () => handleSort(header.column.id) : undefined}
                                         >
                                             <div className={`flex items-center gap-1 ${isLast ? "justify-end" : ""}`}>
@@ -115,7 +124,7 @@ export function DataTable<TData>({
                                 {row.getVisibleCells().map((cell, index) => (
                                     <TableCell
                                         key={cell.id}
-                                        className={`${index === row.getVisibleCells().length - 1 ? `text-right ${stickyLastColumn ? STICKY_LAST : ""}` : ""}`}
+                                        className={`${index === row.getVisibleCells().length - 1 ? `text-right ${stickyLastColumn ? STICKY_LAST : ""}` : ""} ${cell.column.columnDef.meta?.className ?? ""}`}
                                     >
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                     </TableCell>

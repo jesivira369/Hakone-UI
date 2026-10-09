@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Bike, CheckCircle2, Circle } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 // Datos del cliente: nunca se cachean ni se indexan. La vista previa al pegar el enlace en WhatsApp es genérica
 // (no incluye nombre, bici ni taller).
@@ -26,6 +27,7 @@ interface Tracking {
   clientFirstName: string;
   bike: string | null;
   description: string;
+  cost: { labor: number; parts: number; total: number } | null;
   status: "IN_REVIEW" | "QUOTED" | "SCHEDULED" | "IN_PROGRESS" | "READY" | "DELIVERED";
   statusLabel: string;
   statusText: string;
@@ -129,19 +131,34 @@ export default async function TrackingPage({ params }: { params: Promise<{ code:
         )}
       </section>
 
-      <section className="rounded-2xl border bg-card p-5 shadow-sm" aria-label="Detalle">
-        <dl className="space-y-3 text-sm">
-          {t.bike && (
-            <div>
-              <dt className="text-muted-foreground">Bicicleta</dt>
-              <dd className="font-medium">{t.bike}</dd>
+      <section className="rounded-2xl border bg-card p-5 shadow-sm" aria-label="Trabajo a realizar">
+        {t.bike && (
+          <p className="mb-3 text-sm text-muted-foreground">
+            Bicicleta: <span className="font-medium text-foreground">{t.bike}</span>
+          </p>
+        )}
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-primary">Trabajo a realizar</h2>
+        <p className="mt-1 whitespace-pre-line break-words text-lg font-semibold leading-snug">{t.description}</p>
+        {t.cost && (
+          <div className="mt-4 space-y-1 border-t pt-4 text-sm">
+            {t.cost.parts > 0 && (
+              <>
+                <div className="flex justify-between gap-3 text-muted-foreground">
+                  <span>Mano de obra</span>
+                  <span className="tabular-nums">{formatCurrency(t.cost.labor)}</span>
+                </div>
+                <div className="flex justify-between gap-3 text-muted-foreground">
+                  <span>Repuestos</span>
+                  <span className="tabular-nums">{formatCurrency(t.cost.parts)}</span>
+                </div>
+              </>
+            )}
+            <div className="flex items-baseline justify-between gap-3 pt-1">
+              <span className="font-medium">{t.status === "QUOTED" ? "Presupuesto" : "Costo del trabajo"}</span>
+              <span className="text-2xl font-bold tabular-nums">{formatCurrency(t.cost.total)}</span>
             </div>
-          )}
-          <div>
-            <dt className="text-muted-foreground">Trabajo</dt>
-            <dd className="font-medium">{t.description}</dd>
           </div>
-        </dl>
+        )}
       </section>
 
       <section className="rounded-2xl border bg-card p-5 shadow-sm" aria-label="Línea de tiempo">

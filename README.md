@@ -10,8 +10,10 @@ El backend está en el repo [`Hakone-API`](https://github.com/jesivira369/Hakone
 ## Qué incluye
 
 **Landing pública** (`/`) con presentación del producto, planes y formulario de
-contacto. El precio se muestra en pesos argentinos si el visitante está en
-Argentina, y en dólares en el resto del mundo.
+contacto. Hay un único plan: **ARS 45.000 por mes**, sin tiers. Todo está
+siempre disponible y las funciones nuevas quedan incluidas. El precio es una
+constante en `lib/pricing.ts` (no depende del país del visitante y la landing
+no hace requests a servicios externos de geolocalización).
 
 **Panel del taller** (requiere sesión):
 

@@ -8,9 +8,10 @@ import api from "@/lib/axiosInstance";
 import { Bike } from "@/lib/types";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
-import { Eye, Edit, Trash } from "lucide-react";
+import { Edit, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { RowActionsMenu, type RowAction } from "@/components/ui/RowActionsMenu";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/utils";
@@ -64,7 +65,8 @@ export default function Bikes() {
         },
     });
 
-    const columns: ColumnDef<Bike>[] = [
+    // Memoizadas: si el array cambia en cada render, el menú ⋮ abierto se cierra solo.
+    const columns = useMemo<ColumnDef<Bike>[]>(() => [
         { accessorKey: "brand", header: "Marca", enableSorting: true },
         { accessorKey: "model", header: "Modelo", enableSorting: true },
         {
@@ -90,21 +92,22 @@ export default function Bikes() {
             id: "actions",
             header: "Acciones",
             enableSorting: false,
-            cell: ({ row }) => (
-                <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => router.push(`/bikes/${row.original.id}`)}>
-                        <Eye size={16} />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => { setSelectedBike(row.original); setModalOpen(true); }}>
-                        <Edit size={16} />
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => { setSelectedBike(row.original); setDeleteModalOpen(true); }}>
-                        <Trash size={16} />
-                    </Button>
-                </div>
-            ),
+            cell: ({ row }) => {
+                const bike = row.original;
+                const items: RowAction[] = [
+                    { label: "Editar", icon: <Edit size={14} />, onSelect: () => { setSelectedBike(bike); setModalOpen(true); } },
+                    {
+                        label: "Eliminar",
+                        icon: <Trash size={14} />,
+                        destructive: true,
+                        separatorBefore: true,
+                        onSelect: () => { setSelectedBike(bike); setDeleteModalOpen(true); },
+                    },
+                ];
+                return <RowActionsMenu ariaLabel="Acciones de la bicicleta" items={items} />;
+            },
         },
-    ];
+    ], []);
 
     if (isLoading && !bikesData) return <TableSkeleton />;
     if (error) return <p>Error al cargar las bicicletas.</p>;
@@ -134,6 +137,8 @@ export default function Bikes() {
                 setSortBy={setSortBy}
                 sortOrder={sortOrder}
                 setSortOrder={setSortOrder}
+                onRowClick={(bike) => router.push(`/bikes/${bike.id}`)}
+                stickyLastColumn
             />
             {modalOpen && (
                 <BicycleModal

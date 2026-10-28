@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/useDebounce";
 import api from "@/lib/axiosInstance";
@@ -8,10 +8,11 @@ import { Client } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash, Edit, Eye } from "lucide-react";
+import { Trash, Edit } from "lucide-react";
 import { DeleteModal } from "@/components/ui/DeleteModal";
 import { ClientModal } from "@/components/ui/ClientModal";
 import { DataTable } from "@/components/ui/DataTable";
+import { RowActionsMenu, type RowAction } from "@/components/ui/RowActionsMenu";
 import { ColumnDef } from "@tanstack/react-table";
 import { formatDate } from "@/lib/utils";
 import { toast } from "react-toastify";
@@ -64,7 +65,8 @@ export default function ClientsPage() {
         },
     });
 
-    const columns: ColumnDef<Client>[] = [
+    // Memoizadas: si el array cambia en cada render, el menú ⋮ abierto se cierra solo.
+    const columns = useMemo<ColumnDef<Client>[]>(() => [
         {
             accessorKey: "name",
             header: "Nombre",
@@ -93,26 +95,27 @@ export default function ClientsPage() {
             id: "actions",
             header: "Acciones",
             enableSorting: false,
-            cell: ({ row }) => (
-                <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => router.push(`/clients/${row.original.id}`)}>
-                        <Eye size={16} />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => { setSelectedClient(row.original); setModalOpen(true); }}>
-                        <Edit size={16} />
-                    </Button>
-                    {/* El cliente genérico ("Cliente Ocasional") es un registro compartido
-                        que reutiliza el taller; borrarlo rompería cualquier servicio que
-                        ya lo esté usando. El backend también lo protege (403). */}
-                    {!row.original.isGeneric && (
-                        <Button size="sm" variant="destructive" onClick={() => { setSelectedClient(row.original); setDeleteModalOpen(true); }}>
-                            <Trash size={16} />
-                        </Button>
-                    )}
-                </div>
-            ),
+            cell: ({ row }) => {
+                const client = row.original;
+                // El cliente genérico ("Cliente Ocasional") es un registro compartido
+                // que reutiliza el taller; borrarlo rompería cualquier servicio que
+                // ya lo esté usando. El backend también lo protege (403).
+                const items: RowAction[] = [
+                    { label: "Editar", icon: <Edit size={14} />, onSelect: () => { setSelectedClient(client); setModalOpen(true); } },
+                ];
+                if (!client.isGeneric) {
+                    items.push({
+                        label: "Eliminar",
+                        icon: <Trash size={14} />,
+                        destructive: true,
+                        separatorBefore: true,
+                        onSelect: () => { setSelectedClient(client); setDeleteModalOpen(true); },
+                    });
+                }
+                return <RowActionsMenu ariaLabel="Acciones del cliente" items={items} />;
+            },
         },
-    ];
+    ], []);
 
     if (isLoading && !clientsData) return <TableSkeleton />;
     if (error) return <p>Error al cargar los clientes.</p>;
@@ -142,6 +145,8 @@ export default function ClientsPage() {
                 setSortBy={setSortBy}
                 sortOrder={sortOrder}
                 setSortOrder={setSortOrder}
+                onRowClick={(client) => router.push(`/clients/${client.id}`)}
+                stickyLastColumn
             />
             {modalOpen && (
                 <ClientModal

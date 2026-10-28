@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { StatsCardProps } from "@/lib/types";
 import Link from "next/link";
 
-export function StatsCard({ title, value, icon, link }: StatsCardProps) {
+export function StatsCard({ title, value, icon, link, destructive }: StatsCardProps) {
     const text = typeof value === "string" ? value : String(value);
     return (
         // Título e ícono arriba, cifra debajo y a todo el ancho: así los montos largos no se cortan
@@ -21,7 +21,7 @@ export function StatsCard({ title, value, icon, link }: StatsCardProps) {
                 )}
             </div>
             <p
-                className="min-w-0 truncate text-xl font-extrabold tabular-nums text-foreground sm:text-2xl"
+                className={`min-w-0 truncate text-xl font-extrabold tabular-nums sm:text-2xl ${destructive ? "text-destructive" : "text-foreground"}`}
                 title={text}
             >
                 {value}

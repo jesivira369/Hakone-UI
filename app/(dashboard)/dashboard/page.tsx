@@ -18,6 +18,9 @@ import { ExpenseCategoryLabels, PaymentMethod, PaymentMethodLabels, ServiceStatu
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 
+// Formato de los montos en ejes y tooltips. No pasar formatCurrency directo: Chart.js le manda el índice como segundo argumento.
+const formatMoney = (value: number) => formatCurrency(value);
+
 type UpcomingService = {
     id: number;
     description: string;
@@ -255,6 +258,7 @@ export default function DashboardOverview() {
             value: formatCurrency(overview?.netIncome ?? 0),
             icon: <TrendingUp />,
             link: "/dashboard",
+            destructive: (overview?.netIncome ?? 0) < 0,
         },
     ];
 
@@ -418,6 +422,7 @@ export default function DashboardOverview() {
                         data={revenueChartData}
                         title="Ingresos mensuales"
                         label="Ingresos"
+                        formatValue={formatMoney}
                     />
                 )}
                 {statusLoading ? (
@@ -444,6 +449,7 @@ export default function DashboardOverview() {
                         label="Ingresos"
                         colors={CHART_PALETTE}
                         barRadius={6}
+                        formatValue={formatMoney}
                     />
                 )}
                 {expensesLoading ? (
@@ -457,6 +463,7 @@ export default function DashboardOverview() {
                         label="Egresos"
                         colors={CHART_PALETTE}
                         barRadius={6}
+                        formatValue={formatMoney}
                     />
                 )}
             </div>

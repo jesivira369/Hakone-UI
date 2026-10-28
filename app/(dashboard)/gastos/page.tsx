@@ -96,7 +96,7 @@ export default function GastosPage() {
             accessorKey: "amount",
             header: "Monto",
             enableSorting: true,
-            cell: ({ row }) => `$${formatCurrency(row.original.amount)}`,
+            cell: ({ row }) => formatCurrency(row.original.amount),
         },
         {
             id: "actions",

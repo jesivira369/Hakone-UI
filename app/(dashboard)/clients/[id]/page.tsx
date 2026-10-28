@@ -207,6 +207,7 @@ export default function ClientDetailPage() {
                                     title="Gasto mensual (últimos 12 meses)"
                                     label="Gasto cobrado"
                                     color={resolvedTheme === "dark" ? BRAND_BAR_DARK : BRAND_BAR_LIGHT}
+                                    formatValue={formatCurrency}
                                     data={stats.spendByMonth.map((m) => ({ name: monthLabel(m.month), value: m.total }))}
                                 />
                             )}

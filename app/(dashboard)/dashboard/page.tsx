@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DeleteModal } from "@/components/ui/DeleteModal";
 import { formatCurrency } from "@/lib/utils";
+import { CHART_PALETTE } from "@/lib/chartColors";
 import { toast } from "react-toastify";
 import { DashboardStats, InShopSummary } from "@/lib/types/stats";
 import { ExpenseCategoryLabels, PaymentMethod, PaymentMethodLabels, ServiceStatus, ServiceStatusLabels } from "@/lib/enums";
@@ -438,6 +439,8 @@ export default function DashboardOverview() {
                         data={methodChartData}
                         title="Ingresos por método de pago"
                         label="Ingresos"
+                        colors={CHART_PALETTE}
+                        barRadius={6}
                     />
                 )}
                 {expensesLoading ? (
@@ -449,6 +452,8 @@ export default function DashboardOverview() {
                         data={expensesByCategoryChartData}
                         title="Egresos por categoría"
                         label="Egresos"
+                        colors={CHART_PALETTE}
+                        barRadius={6}
                     />
                 )}
             </div>

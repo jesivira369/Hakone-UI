@@ -202,9 +202,9 @@ function ServicesContent() {
                     // La fecha exacta se ve en el detalle; aquí solo el estado (tooltip con la fecha).
                     <span
                         className="whitespace-nowrap rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
-                        title={`Retirada el ${formatDate(row.original.pickedUpAt)}`}
+                        title={`Entregada el ${formatDate(row.original.pickedUpAt)}`}
                     >
-                        Retirado
+                        Entregada
                     </span>
                 ) : (
                     <span className="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">

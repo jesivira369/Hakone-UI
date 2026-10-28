@@ -534,7 +534,7 @@ export default function LandingPage() {
               },
               {
                 q: "¿Mis datos están seguros?",
-                a: "La sesión se maneja con cookie HttpOnly y el backend valida permisos. (Podés complementar con tu política de seguridad.)",
+                a: "La sesión se maneja con cookie HttpOnly y el backend valida permisos.",
               },
             ].map((faq, idx) => (
               <AccordionItem key={faq.q} value={`item-${idx}`} className="rounded-xl border border-border bg-card px-6">

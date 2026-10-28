@@ -1,11 +1,11 @@
 import { useTheme } from "next-themes";
 import { Bar } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, type ChartOptions } from "chart.js";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarController, BarElement, Title, Tooltip, Legend, type ChartOptions } from "chart.js";
 import { ChartCard } from "./ChartCard";
 import { BarChartProps } from "@/lib/types";
 import { BRAND_BAR_DARK, BRAND_BAR_LIGHT } from "@/lib/chartColors";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarController, BarElement, Title, Tooltip, Legend);
 
 const AXIS_TEXT_LIGHT = "#14181F";
 const AXIS_TEXT_DARK = "#FAFAFA";

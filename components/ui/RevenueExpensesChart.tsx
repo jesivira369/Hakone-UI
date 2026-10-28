@@ -4,7 +4,9 @@ import {
     Chart as ChartJS,
     CategoryScale,
     LinearScale,
+    BarController,
     BarElement,
+    LineController,
     LineElement,
     PointElement,
     Title,
@@ -16,7 +18,9 @@ import {
 import { ChartCard } from "./ChartCard";
 import { BRAND_BAR_DARK, BRAND_BAR_LIGHT, CHART_PALETTE } from "@/lib/chartColors";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend);
+// Las series "line" (neto) dentro de un gráfico mixto necesitan su controlador.
+// Sin LineController, Chart.js lanza "line is not a registered controller".
+ChartJS.register(CategoryScale, LinearScale, BarController, BarElement, LineController, LineElement, PointElement, Title, Tooltip, Legend);
 
 const AXIS_TEXT_LIGHT = "#14181F";
 const AXIS_TEXT_DARK = "#FAFAFA";

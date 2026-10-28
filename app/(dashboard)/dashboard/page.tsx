@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { StatsCard } from "@/components/ui/StatsCards";
 import { CustomBarChart } from "@/components/ui/BarChart";
+import { RevenueExpensesChart } from "@/components/ui/RevenueExpensesChart";
 import { Users, Bike, Wrench, DollarSign, Download, TrendingDown, TrendingUp } from "lucide-react";
 import { DashboardSkeleton } from "@/components/ui/Skeleton/DashboardSkeleton";
 import { Button } from "@/components/ui/button";
@@ -14,9 +15,11 @@ import { formatCurrency } from "@/lib/utils";
 import { CHART_PALETTE } from "@/lib/chartColors";
 import { toast } from "react-toastify";
 import { DashboardStats, InShopSummary } from "@/lib/types/stats";
-import { ExpenseCategoryLabels, PaymentMethod, PaymentMethodLabels, ServiceStatus, ServiceStatusLabels, ServiceStatusStyles } from "@/lib/enums";
+import { ExpenseCategoryLabels, PaymentMethod, PaymentMethodLabels, ServiceCategoryLabels, ServiceStatus, ServiceStatusLabels, ServiceStatusStyles } from "@/lib/enums";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
+import { openReminderWhatsApp } from "@/lib/shareService";
+import { useAuth } from "@/context/auth-provider";
 
 // Formato de los montos en ejes y tooltips. No pasar formatCurrency directo: Chart.js le manda el índice como segundo argumento.
 const formatMoney = (value: number) => formatCurrency(value);
@@ -35,11 +38,15 @@ type UpcomingService = {
 type UpcomingReminder = {
     id: number;
     category: string;
+    description: string;
     scheduledReminderDate?: string | null;
     reminderContactedAt?: string | null;
     client?: { id: number; name: string; phone: string } | null;
     bicycle?: { id: number; brand: string; model: string } | null;
 };
+
+/** Horizontes del recordatorio (la API acepta solo estos valores). */
+const REMINDER_HORIZONS = ["30", "60", "90"] as const;
 
 type UpcomingTab = "todos" | "inicio" | "entrega";
 
@@ -135,6 +142,8 @@ export default function DashboardOverview() {
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
     const [upcomingTab, setUpcomingTab] = useState<UpcomingTab>("todos");
+    const [reminderHorizon, setReminderHorizon] = useState<(typeof REMINDER_HORIZONS)[number]>("30");
+    const { user } = useAuth();
     const [appliedFrom, setAppliedFrom] = useState("");
     const [appliedTo, setAppliedTo] = useState("");
     // Filtro por método de pago ("ALL" = todos); igual que las fechas, se aplica con "Aplicar filtros".
@@ -158,7 +167,6 @@ export default function DashboardOverview() {
         },
     });
     const overview = dashboard?.overview;
-    const revenue = dashboard?.revenue;
     const expenses = dashboard?.expenses;
     const byStatus = dashboard?.byStatus;
     const topClients = dashboard?.topClients;
@@ -187,12 +195,20 @@ export default function DashboardOverview() {
     });
 
     const { data: reminders, isLoading: remindersLoading } = useQuery<UpcomingReminder[]>({
-        queryKey: ["services-reminders-upcoming", "30d"],
+        queryKey: ["services-reminders-upcoming", reminderHorizon],
         queryFn: async () => {
-            const { data } = await api.get("/services/reminders/upcoming?days=30");
+            const { data } = await api.get(`/services/reminders/upcoming?days=${reminderHorizon}`);
             return data as UpcomingReminder[];
         },
     });
+
+    // Recordatorios sin contactar cuyo aviso cae en los próximos 7 días. Se calcula sobre la lista ya cargada.
+    const remindersThisWeek = (() => {
+        const weekEnd = Date.now() + 7 * 86_400_000;
+        return (reminders ?? []).filter(
+            (r) => !r.reminderContactedAt && r.scheduledReminderDate && new Date(r.scheduledReminderDate).getTime() <= weekEnd,
+        ).length;
+    })();
 
     const handleApplyFilters = () => {
         setAppliedFrom(dateFrom);
@@ -262,24 +278,35 @@ export default function DashboardOverview() {
         },
     ];
 
-    // Agrupar puntos diarios por mes (YYYY-MM → nombre legible)
-    const revenueChartData = (() => {
-        const monthly: Record<string, number> = {};
-        for (const s of revenue?.series ?? []) {
-            const month = s.date.slice(0, 7); // "YYYY-MM"
-            monthly[month] = (monthly[month] ?? 0) + s.total;
+    // Agrupar puntos diarios por mes (YYYY-MM → nombre legible): ingresos, egresos y neto.
+    const monthlyFlowData = (() => {
+        const monthly: Record<string, { revenue: number; expenses: number }> = {};
+        for (const p of dashboard?.netIncome.series ?? []) {
+            const month = p.date.slice(0, 7); // "YYYY-MM"
+            const acc = (monthly[month] ??= { revenue: 0, expenses: 0 });
+            acc.revenue += p.revenue;
+            acc.expenses += p.expenses;
         }
         return Object.entries(monthly)
             .sort(([a], [b]) => a.localeCompare(b))
-            .map(([month, total]) => {
+            .map(([month, { revenue: rev, expenses: exp }]) => {
                 const [year, m] = month.split("-");
                 const label = new Date(Number(year), Number(m) - 1, 1).toLocaleString("es", {
                     month: "short",
                     year: "2-digit",
                 });
-                return { name: label, value: total };
+                return { name: label, revenue: rev, expenses: exp, net: rev - exp };
             });
     })();
+
+    // Margen: qué porcentaje de lo facturado quedó como neto. `null` si no hubo ingresos.
+    const marginPct = dashboard?.netIncome.marginPct ?? null;
+    const formatPct = (value: number) => `${new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 }).format(value)} %`;
+
+    const categoryChartData = (dashboard?.revenueByCategory.categories ?? []).map((c) => ({
+        name: ServiceCategoryLabels[c.category as keyof typeof ServiceCategoryLabels] ?? c.category,
+        value: c.total,
+    }));
 
     const statusChartData = byStatus
         ? Object.values(ServiceStatus).map((st) => ({
@@ -411,6 +438,27 @@ export default function DashboardOverview() {
                 )}
             </div>
 
+            {/* Margen del período: cuánto de lo facturado te quedó */}
+            <div className="min-w-0 rounded-xl border bg-card p-4 sm:p-5">
+                <h2 className="text-lg font-semibold">Margen del período</h2>
+                {dashboardLoading ? (
+                    <div className="mt-3 text-sm text-muted-foreground">Cargando...</div>
+                ) : marginPct === null ? (
+                    <p className="mt-2 text-sm text-muted-foreground">Todavía no hay ingresos cobrados en este período.</p>
+                ) : (
+                    <>
+                        <p className={`mt-2 text-3xl font-extrabold tabular-nums ${marginPct < 0 ? "text-destructive" : "text-foreground"}`}>
+                            {formatPct(marginPct)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            {marginPct < 0
+                                ? "Gastaste más de lo que cobraste en este período."
+                                : `Te quedó ${formatPct(marginPct)} de lo que facturaste.`}
+                        </p>
+                    </>
+                )}
+            </div>
+
             {/* Charts */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 {revenueLoading ? (
@@ -418,10 +466,19 @@ export default function DashboardOverview() {
                         Cargando ingresos...
                     </div>
                 ) : (
+                    <RevenueExpensesChart data={monthlyFlowData} title="Ingresos y egresos por mes" formatValue={formatMoney} />
+                )}
+                {revenueLoading ? (
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">
+                        Cargando categorías...
+                    </div>
+                ) : (
                     <CustomBarChart
-                        data={revenueChartData}
-                        title="Ingresos mensuales"
+                        data={categoryChartData}
+                        title="Ingresos por categoría de servicio"
                         label="Ingresos"
+                        colors={CHART_PALETTE}
+                        barRadius={6}
                         formatValue={formatMoney}
                     />
                 )}
@@ -545,12 +602,33 @@ export default function DashboardOverview() {
             </div>
 
             {/* Recordatorios próximos */}
+            <div className="grid gap-2">
+                {!remindersLoading && reminders && (
+                    <p className="text-sm font-medium">
+                        <span className="text-primary">{remindersThisWeek}</span> para contactar esta semana
+                    </p>
+                )}
             <div className="min-w-0 rounded-xl border bg-card p-4 sm:p-5">
-                <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-lg font-semibold">Recordatorios (próximos 30 días)</h2>
-                    <Link href="/services" className="text-sm text-primary hover:underline underline-offset-4">
-                        Ver servicios
-                    </Link>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <h2 className="text-lg font-semibold">Recordatorios (próximos {reminderHorizon} días)</h2>
+                        <p className="text-xs text-muted-foreground">No hay envío automático: cada aviso lo mandás vos desde WhatsApp.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Select value={reminderHorizon} onValueChange={(v) => setReminderHorizon(v as (typeof REMINDER_HORIZONS)[number])}>
+                            <SelectTrigger className="w-28" aria-label="Horizonte de recordatorios">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {REMINDER_HORIZONS.map((d) => (
+                                    <SelectItem key={d} value={d}>{d} días</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Link href="/services" className="text-sm text-primary hover:underline underline-offset-4">
+                            Ver servicios
+                        </Link>
+                    </div>
                 </div>
                 {remindersLoading ? (
                     <div className="mt-3 text-sm text-muted-foreground">Cargando...</div>
@@ -559,12 +637,8 @@ export default function DashboardOverview() {
                 ) : (
                     <div className="mt-3 grid grid-cols-1 gap-2">
                         {reminders.slice(0, 5).map((r) => {
-                            const phone = r.client?.phone?.replace(/\D/g, "") ?? "";
+                            const phone = r.client?.phone ?? "";
                             const bikeLabel = r.bicycle ? `${r.bicycle.brand} ${r.bicycle.model}` : "";
-                            const waText = encodeURIComponent(
-                                `Hola ${r.client?.name ?? ""}, te contactamos para recordarte el mantenimiento de tu bicicleta ${bikeLabel}. ¿Cuándo podemos agendarte?`
-                            );
-                            const waHref = phone ? `https://wa.me/${phone}?text=${waText}` : undefined;
 
                             return (
                                 <div
@@ -585,20 +659,35 @@ export default function DashboardOverview() {
                                         </div>
                                     </Link>
                                     <div className="shrink-0 flex items-center gap-2">
-                                        {waHref && (
-                                            <a
-                                                href={waHref}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={(e) => e.stopPropagation()}
-                                                title="Contactar por WhatsApp"
+                                        {phone && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    // Sin `await`: window.open tiene que ir en el mismo gesto del usuario.
+                                                    try {
+                                                        openReminderWhatsApp({
+                                                            clientName: r.client?.name ?? "",
+                                                            phone: r.client?.phone ?? "",
+                                                            bikeLabel,
+                                                            serviceDescription: r.description,
+                                                            shopName: user?.shopName ?? "",
+                                                        });
+                                                    } catch (err) {
+                                                        toast.error(err instanceof Error ? err.message : "No se pudo abrir WhatsApp", {
+                                                            className: "bg-red-600 text-white border border-red-700",
+                                                        });
+                                                    }
+                                                }}
+                                                title="Abrir WhatsApp con el mensaje listo"
                                                 className="inline-flex items-center gap-1 rounded-md bg-green-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-green-700 transition-colors"
                                             >
                                                 <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current" aria-hidden>
                                                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                                                 </svg>
                                                 WhatsApp
-                                            </a>
+                                            </button>
                                         )}
                                         <ReminderContactButton serviceId={r.id} contacted={!!r.reminderContactedAt} />
                                         <ReminderDeleteButton
@@ -616,6 +705,7 @@ export default function DashboardOverview() {
                         )}
                     </div>
                 )}
+            </div>
             </div>
 
             {/* Top Clientes */}

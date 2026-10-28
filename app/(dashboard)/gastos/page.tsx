@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/useDebounce";
 import api from "@/lib/axiosInstance";
@@ -13,6 +13,7 @@ import { Trash, Edit } from "lucide-react";
 import { DeleteModal } from "@/components/ui/DeleteModal";
 import { ExpenseModal } from "@/components/ui/ExpenseModal";
 import { DataTable } from "@/components/ui/DataTable";
+import { RowActionsMenu, type RowAction } from "@/components/ui/RowActionsMenu";
 import { ColumnDef } from "@tanstack/react-table";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "react-toastify";
@@ -69,7 +70,8 @@ export default function GastosPage() {
         },
     });
 
-    const columns: ColumnDef<Expense>[] = [
+    // Memoizadas: si el array cambia en cada render, el menú ⋮ abierto se cierra solo.
+    const columns = useMemo<ColumnDef<Expense>[]>(() => [
         {
             accessorKey: "paidAt",
             header: "Fecha",
@@ -102,18 +104,23 @@ export default function GastosPage() {
             id: "actions",
             header: "Acciones",
             enableSorting: false,
-            cell: ({ row }) => (
-                <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="outline" onClick={() => { setSelectedExpense(row.original); setModalOpen(true); }}>
-                        <Edit size={16} />
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => { setSelectedExpense(row.original); setDeleteModalOpen(true); }}>
-                        <Trash size={16} />
-                    </Button>
-                </div>
-            ),
+            cell: ({ row }) => {
+                const expense = row.original;
+                // Sin página de detalle: la tabla no tiene onRowClick.
+                const items: RowAction[] = [
+                    { label: "Editar", icon: <Edit size={14} />, onSelect: () => { setSelectedExpense(expense); setModalOpen(true); } },
+                    {
+                        label: "Eliminar",
+                        icon: <Trash size={14} />,
+                        destructive: true,
+                        separatorBefore: true,
+                        onSelect: () => { setSelectedExpense(expense); setDeleteModalOpen(true); },
+                    },
+                ];
+                return <RowActionsMenu ariaLabel="Acciones del gasto" items={items} />;
+            },
         },
-    ];
+    ], []);
 
     if (isLoading && !expensesData) return <TableSkeleton />;
     if (error) return <p>Error al cargar los gastos.</p>;
@@ -158,6 +165,7 @@ export default function GastosPage() {
                 setSortBy={setSortBy}
                 sortOrder={sortOrder}
                 setSortOrder={setSortOrder}
+                stickyLastColumn
             />
             {modalOpen && (
                 <ExpenseModal

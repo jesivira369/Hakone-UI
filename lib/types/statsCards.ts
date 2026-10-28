@@ -4,4 +4,6 @@ export interface StatsCardProps {
   icon: React.ReactNode;
   /** Sin link la tarjeta es solo informativa (ej. estadísticas de la ficha del cliente). */
   link?: string;
+  /** Pinta el valor en el color de error (ej. ingresos netos negativos). */
+  destructive?: boolean;
 }

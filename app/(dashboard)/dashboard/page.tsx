@@ -5,18 +5,21 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { StatsCard } from "@/components/ui/StatsCards";
 import { CustomBarChart } from "@/components/ui/BarChart";
-import { CustomLineChart } from "@/components/ui/LineChart";
 import { Users, Bike, Wrench, DollarSign, Download, TrendingDown, TrendingUp } from "lucide-react";
 import { DashboardSkeleton } from "@/components/ui/Skeleton/DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DeleteModal } from "@/components/ui/DeleteModal";
 import { formatCurrency } from "@/lib/utils";
+import { CHART_PALETTE } from "@/lib/chartColors";
 import { toast } from "react-toastify";
 import { DashboardStats, InShopSummary } from "@/lib/types/stats";
-import { ExpenseCategoryLabels, PaymentMethod, PaymentMethodLabels, ServiceStatus, ServiceStatusLabels } from "@/lib/enums";
+import { ExpenseCategoryLabels, PaymentMethod, PaymentMethodLabels, ServiceStatus, ServiceStatusLabels, ServiceStatusStyles } from "@/lib/enums";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
+
+// Formato de los montos en ejes y tooltips. No pasar formatCurrency directo: Chart.js le manda el índice como segundo argumento.
+const formatMoney = (value: number) => formatCurrency(value);
 
 type UpcomingService = {
     id: number;
@@ -255,6 +258,7 @@ export default function DashboardOverview() {
             value: formatCurrency(overview?.netIncome ?? 0),
             icon: <TrendingUp />,
             link: "/dashboard",
+            destructive: (overview?.netIncome ?? 0) < 0,
         },
     ];
 
@@ -283,6 +287,8 @@ export default function DashboardOverview() {
               value: byStatus[st] ?? 0,
           }))
         : [];
+    // Mismo orden que statusChartData: cada barra toma el color de su estado.
+    const statusChartColors = Object.values(ServiceStatus).map((st) => ServiceStatusStyles[st].chart);
 
     const methodChartData = (byMethod?.methods ?? []).map((m) => ({
         name: PaymentMethodLabels[m.method as PaymentMethod] ?? m.method,
@@ -416,6 +422,7 @@ export default function DashboardOverview() {
                         data={revenueChartData}
                         title="Ingresos mensuales"
                         label="Ingresos"
+                        formatValue={formatMoney}
                     />
                 )}
                 {statusLoading ? (
@@ -423,10 +430,12 @@ export default function DashboardOverview() {
                         Cargando estados...
                     </div>
                 ) : (
-                    <CustomLineChart
+                    <CustomBarChart
                         data={statusChartData}
                         title="Servicios por estado"
                         label="Cantidad"
+                        colors={statusChartColors}
+                        barRadius={6}
                     />
                 )}
                 {byMethodLoading ? (
@@ -438,6 +447,9 @@ export default function DashboardOverview() {
                         data={methodChartData}
                         title="Ingresos por método de pago"
                         label="Ingresos"
+                        colors={CHART_PALETTE}
+                        barRadius={6}
+                        formatValue={formatMoney}
                     />
                 )}
                 {expensesLoading ? (
@@ -449,6 +461,9 @@ export default function DashboardOverview() {
                         data={expensesByCategoryChartData}
                         title="Egresos por categoría"
                         label="Egresos"
+                        colors={CHART_PALETTE}
+                        barRadius={6}
+                        formatValue={formatMoney}
                     />
                 )}
             </div>

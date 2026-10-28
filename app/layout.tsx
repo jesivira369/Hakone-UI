@@ -6,6 +6,7 @@ import "./globals.css";
 import { ThemeProvider } from "../components/theme/theme-provider";
 import { AuthProvider } from "@/context/auth-provider";
 import { Toaster } from "@/components/ui/Toaster";
+import { PLAN_PRICE_ARS } from "@/lib/pricing";
 
 const siteUrl = "https://hakoneservice.com";
 const appName = "Hakone - Gestión de Taller de Bicicletas";
@@ -53,6 +54,13 @@ const jsonLd = {
     "@type": "Organization",
     name: "Hakone",
     url: siteUrl,
+  },
+  offers: {
+    "@type": "Offer",
+    price: String(PLAN_PRICE_ARS),
+    priceCurrency: "ARS",
+    availability: "https://schema.org/InStock",
+    description: "Plan único mensual, sin tiers: todas las funciones incluidas.",
   },
 };
 

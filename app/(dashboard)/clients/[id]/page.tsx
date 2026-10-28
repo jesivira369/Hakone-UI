@@ -9,11 +9,27 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Edit, Eye } from "lucide-react";
+import { CalendarDays, DollarSign, Edit, Eye, Receipt, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { ClientModal } from "@/components/ui/ClientModal";
-import { formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { DetailsSkeleton } from "@/components/ui/Skeleton/DetailsSkeleton";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatsCard } from "@/components/ui/StatsCards";
+import { CustomBarChart } from "@/components/ui/BarChart";
+import { ChartCard } from "@/components/ui/ChartCard";
+import { ClientStats } from "@/lib/types";
+
+// Azul de marca (primary del tema), mismo tono que el resto de la app en cada modo.
+const BRAND_BAR_LIGHT = "#1FA2AD";
+const BRAND_BAR_DARK = "#26CAD9";
+
+/** "2026-03" -> "mar 26", con el mismo formato corto que el dashboard. */
+function monthLabel(ym: string): string {
+    const [y, m] = ym.split("-").map(Number);
+    return new Date(y, m - 1, 1).toLocaleString("es", { month: "short", year: "2-digit" });
+}
 
 export default function ClientDetailPage() {
     const { id: clientId } = useParams();
@@ -21,6 +37,7 @@ export default function ClientDetailPage() {
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
     const router = useRouter();
+    const { resolvedTheme } = useTheme();
 
     const { data: clientData, isLoading, error } = useQuery<Client>({
         queryKey: ["client", clientId],
@@ -37,6 +54,19 @@ export default function ClientDetailPage() {
             return data;
         },
         enabled: !!clientId
+    });
+
+    // Estadísticas del cliente (spec 010). La key empieza con "stats-" para que
+    // invalidateServiceQueries() la refresque al cambiar un servicio. El cliente
+    // genérico no tiene estadísticas (la API responde 404), así que no se consulta.
+    const isGenericClient = clientData?.isGeneric === true;
+    const { data: stats, error: statsError } = useQuery<ClientStats>({
+        queryKey: ["stats-client", clientId],
+        queryFn: async () => {
+            const { data } = await api.get(`/clients/${clientId}/stats?tzOffset=${new Date().getTimezoneOffset()}`);
+            return data;
+        },
+        enabled: !!clientId && !!clientData && !isGenericClient,
     });
 
     if (isLoading) {
@@ -94,7 +124,7 @@ export default function ClientDetailPage() {
                         <CardTitle>Datos Generales</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p><strong>Registrado el:</strong> {formatDate(clientData.updatedAt)}</p>
+                        <p><strong>Registrado el:</strong> {formatDate(clientData.createdAt)}</p>
                         <p><strong>Última actualización:</strong> {formatDate(clientData.updatedAt)}</p>
                     </CardContent>
                 </Card>
@@ -105,7 +135,7 @@ export default function ClientDetailPage() {
                     </CardHeader>
                     <CardContent>
                         <p><strong>Bicicletas asociadas:</strong> {clientData.bicycles?.length || 0}</p>
-                        <p><strong>Servicios realizados:</strong> {clientData.services?.length || 0}</p>
+                        <p><strong>Servicios realizados:</strong> {isGenericClient ? "—" : stats?.servicesCount ?? "—"}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -126,10 +156,53 @@ export default function ClientDetailPage() {
                 />
             </div>
 
-            <div className="mt-6">
-                <h2 className="text-xl font-semibold mb-4">Estadísticas y Reportes (Próximamente)</h2>
-                <p className="text-gray-500">Aquí se mostrarán gráficos y estadísticas sobre los servicios y actividad del cliente.</p>
-            </div>
+            {!isGenericClient && (
+                <section className="min-w-0 space-y-4">
+                    <h2 className="text-xl font-semibold">Estadísticas del cliente</h2>
+                    {statsError ? (
+                        <p className="text-sm text-destructive">No se pudieron cargar las estadísticas.</p>
+                    ) : !stats ? (
+                        <>
+                            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                                {[0, 1, 2, 3].map((i) => (
+                                    <Skeleton key={i} className="h-24 rounded-xl" />
+                                ))}
+                            </div>
+                            <Skeleton className="h-72 rounded-xl" />
+                        </>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                                <StatsCard title="Total gastado" value={formatCurrency(stats.totalSpent)} icon={<DollarSign />} />
+                                <StatsCard title="Servicios" value={stats.servicesCount} icon={<Wrench />} />
+                                <StatsCard
+                                    title="Ticket promedio"
+                                    value={stats.averageTicket === null ? "—" : formatCurrency(stats.averageTicket)}
+                                    icon={<Receipt />}
+                                />
+                                <StatsCard
+                                    title="Última visita"
+                                    value={stats.lastServiceAt ? formatDate(stats.lastServiceAt) : "Sin servicios"}
+                                    icon={<CalendarDays />}
+                                />
+                            </div>
+
+                            {stats.paidCount === 0 ? (
+                                <ChartCard title="Gasto mensual (últimos 12 meses)">
+                                    <p className="py-12 text-center text-sm text-muted-foreground">Aún no hay servicios pagados</p>
+                                </ChartCard>
+                            ) : (
+                                <CustomBarChart
+                                    title="Gasto mensual (últimos 12 meses)"
+                                    label="Gasto cobrado"
+                                    color={resolvedTheme === "dark" ? BRAND_BAR_DARK : BRAND_BAR_LIGHT}
+                                    data={stats.spendByMonth.map((m) => ({ name: monthLabel(m.month), value: m.total }))}
+                                />
+                            )}
+                        </>
+                    )}
+                </section>
+            )}
             {editModalOpen && (
                 <ClientModal
                     isOpen={editModalOpen}

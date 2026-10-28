@@ -99,6 +99,12 @@ calendario y `stats-*`). Specs en `Hakone-API/docs/specs/`.
 marca desde el menú ⋮ de Servicios o el botón del detalle (`PATCH /services/:id/pickup`).
 El dashboard muestra la tarjeta "En el taller" (`GET /services/in-shop`).
 
+**En el taller** = bici recibida y no entregada, en cualquier estado, incluidos cancelados y reservas futuras.
+Es decir, `pickedUpAt: null`, sin filtrar por estado ni fecha. Es una guía de qué bicis tiene el taller, no un
+indicador de trabajo pendiente. La columna "Retiro" de Servicios muestra "En el taller" / "Entregada" según
+`pickedUpAt`, no según el estado: un servicio "Programado" no aparece como retirado. La acción de marcar la
+entrega no se bloquea por estado (ver `Hakone-API/docs/specs/007-pickup-and-cost-optimizations.md`).
+
 ### Folio, comprobante y enlaces públicos
 
 - Cada servicio tiene folio (`number`, `#0123` con `formatFolio`). El botón de WhatsApp (`WhatsAppShareButton`,

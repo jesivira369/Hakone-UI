@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
@@ -248,7 +249,18 @@ export default function ServiceDetails() {
                     </CardHeader>
                     <CardContent>
                         <p className="text-gray-500">Nombre:</p>
-                        <p className="font-medium">{service.client ? service.client.name : "Sin cliente"}</p>
+                        <p className="font-medium">
+                            {service.client && !service.client.isGeneric ? (
+                                <Link
+                                    href={`/clients/${service.client.id}`}
+                                    className="inline-flex items-center rounded-sm py-1 font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                >
+                                    {service.client.name}
+                                </Link>
+                            ) : (
+                                service.client ? service.client.name : "Sin cliente"
+                            )}
+                        </p>
 
                         <p className="text-gray-500 mt-2">Email:</p>
                         <p className="font-medium">{service.client?.email || "No disponible"}</p>

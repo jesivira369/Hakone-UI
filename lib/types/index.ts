@@ -6,7 +6,6 @@ export * from "./expense";
 export * from "./mechanic";
 export * from "./statsCards";
 export * from "./barChart";
-export * from "./lineChart";
 export * from "./stats";
 export * from "./user";
 export * from "./contactRequest";

@@ -8,11 +8,13 @@ import { DataTable } from "@/components/ui/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { CalendarDays, DollarSign, Edit, Eye, Receipt, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { ClientModal } from "@/components/ui/ClientModal";
+import { BicycleModal } from "@/components/ui/BikeModal";
+import { RowActionsMenu, type RowAction } from "@/components/ui/RowActionsMenu";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { DetailsSkeleton } from "@/components/ui/Skeleton/DetailsSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,6 +38,8 @@ export default function ClientDetailPage() {
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
+    const [selectedBike, setSelectedBike] = useState<Bike | null>(null);
+    const [bikeModalOpen, setBikeModalOpen] = useState(false);
     const router = useRouter();
     const { resolvedTheme } = useTheme();
 
@@ -69,12 +73,9 @@ export default function ClientDetailPage() {
         enabled: !!clientId && !!clientData && !isGenericClient,
     });
 
-    if (isLoading) {
-        return <DetailsSkeleton />;
-    }
-    if (error || !clientData) return <p className="p-6 text-red-500">Error al cargar el cliente.</p>;
-
-    const bicycleColumns: ColumnDef<Bike>[] = [
+    // Memoizadas y antes de los returns tempranos (regla de hooks). Si cambian en cada render,
+    // el menú ⋮ abierto se cierra solo.
+    const bicycleColumns = useMemo<ColumnDef<Bike>[]>(() => [
         { accessorKey: "brand", header: "Marca" },
         { accessorKey: "model", header: "Modelo" },
         {
@@ -88,16 +89,24 @@ export default function ClientDetailPage() {
             cell: ({ row }) => row.original.lastServiceDate ? formatDate(row.original.lastServiceDate) : "Sin registro"
         },
         {
+            id: "actions",
             header: "Acciones",
-            cell: ({ row }) => (
-                <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => router.push(`/bikes/${row.original.id}`)}>
-                        <Eye size={16} />
-                    </Button>
-                </div>
-            ),
+            enableSorting: false,
+            cell: ({ row }) => {
+                const bike = row.original;
+                const items: RowAction[] = [
+                    { label: "Ver bicicleta", icon: <Eye size={14} />, onSelect: () => router.push(`/bikes/${bike.id}`) },
+                    { label: "Editar", icon: <Edit size={14} />, onSelect: () => { setSelectedBike(bike); setBikeModalOpen(true); } },
+                ];
+                return <RowActionsMenu ariaLabel="Acciones de la bicicleta" items={items} />;
+            },
         },
-    ];
+    ], [router]);
+
+    if (isLoading) {
+        return <DetailsSkeleton />;
+    }
+    if (error || !clientData) return <p className="p-6 text-red-500">Error al cargar el cliente.</p>;
 
     return (
         <div className="min-w-0 space-y-6">
@@ -153,6 +162,8 @@ export default function ClientDetailPage() {
                     setPage={setPage}
                     setLimit={setLimit}
                     totalPage={bikesData?.totalPages}
+                    onRowClick={(bike) => router.push(`/bikes/${bike.id}`)}
+                    stickyLastColumn
                 />
             </div>
 
@@ -208,6 +219,13 @@ export default function ClientDetailPage() {
                     isOpen={editModalOpen}
                     onClose={() => setEditModalOpen(false)}
                     client={clientData}
+                />
+            )}
+            {bikeModalOpen && selectedBike && (
+                <BicycleModal
+                    isOpen={bikeModalOpen}
+                    onClose={() => setBikeModalOpen(false)}
+                    bicycle={selectedBike}
                 />
             )}
         </div>

@@ -43,6 +43,8 @@ export interface NetIncomeStats {
   totalRevenue: number;
   totalExpenses: number;
   netIncome: number;
+  /** Neto / ingresos en %, con un decimal. `null` si no hubo ingresos en el período. */
+  marginPct: number | null;
 }
 
 export interface ServicesByStatus {
@@ -68,6 +70,17 @@ export interface RevenueByPaymentMethod {
   totalRevenue: number;
 }
 
+export interface RevenueByCategoryItem {
+  category: "MANTENIMIENTO_INTEGRAL" | "ARMADO" | "TRANSMISION_FRENOS" | "REPARACION_PUNTUAL";
+  total: number;
+  count: number;
+}
+
+export interface RevenueByCategory {
+  categories: RevenueByCategoryItem[];
+  totalRevenue: number;
+}
+
 export interface TopClientItem {
   client: {
     id: number;
@@ -88,6 +101,7 @@ export interface DashboardStats {
   byStatus: ServicesByStatus;
   topClients: TopClientItem[];
   revenueByMethod: RevenueByPaymentMethod;
+  revenueByCategory: RevenueByCategory;
 }
 
 /** Respuesta de `GET /services/in-shop`: bicis que siguen en el taller (sin retirar). */

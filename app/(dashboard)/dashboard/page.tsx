@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axiosInstance";
 import { StatsCard } from "@/components/ui/StatsCards";
 import { CustomBarChart } from "@/components/ui/BarChart";
+import { RevenueExpensesChart } from "@/components/ui/RevenueExpensesChart";
 import { Users, Bike, Wrench, DollarSign, Download, TrendingDown, TrendingUp } from "lucide-react";
 import { DashboardSkeleton } from "@/components/ui/Skeleton/DashboardSkeleton";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { formatCurrency } from "@/lib/utils";
 import { CHART_PALETTE } from "@/lib/chartColors";
 import { toast } from "react-toastify";
 import { DashboardStats, InShopSummary } from "@/lib/types/stats";
-import { ExpenseCategoryLabels, PaymentMethod, PaymentMethodLabels, ServiceStatus, ServiceStatusLabels, ServiceStatusStyles } from "@/lib/enums";
+import { ExpenseCategoryLabels, PaymentMethod, PaymentMethodLabels, ServiceCategoryLabels, ServiceStatus, ServiceStatusLabels, ServiceStatusStyles } from "@/lib/enums";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import { openReminderWhatsApp } from "@/lib/shareService";
@@ -166,7 +167,6 @@ export default function DashboardOverview() {
         },
     });
     const overview = dashboard?.overview;
-    const revenue = dashboard?.revenue;
     const expenses = dashboard?.expenses;
     const byStatus = dashboard?.byStatus;
     const topClients = dashboard?.topClients;
@@ -278,24 +278,35 @@ export default function DashboardOverview() {
         },
     ];
 
-    // Agrupar puntos diarios por mes (YYYY-MM → nombre legible)
-    const revenueChartData = (() => {
-        const monthly: Record<string, number> = {};
-        for (const s of revenue?.series ?? []) {
-            const month = s.date.slice(0, 7); // "YYYY-MM"
-            monthly[month] = (monthly[month] ?? 0) + s.total;
+    // Agrupar puntos diarios por mes (YYYY-MM → nombre legible): ingresos, egresos y neto.
+    const monthlyFlowData = (() => {
+        const monthly: Record<string, { revenue: number; expenses: number }> = {};
+        for (const p of dashboard?.netIncome.series ?? []) {
+            const month = p.date.slice(0, 7); // "YYYY-MM"
+            const acc = (monthly[month] ??= { revenue: 0, expenses: 0 });
+            acc.revenue += p.revenue;
+            acc.expenses += p.expenses;
         }
         return Object.entries(monthly)
             .sort(([a], [b]) => a.localeCompare(b))
-            .map(([month, total]) => {
+            .map(([month, { revenue: rev, expenses: exp }]) => {
                 const [year, m] = month.split("-");
                 const label = new Date(Number(year), Number(m) - 1, 1).toLocaleString("es", {
                     month: "short",
                     year: "2-digit",
                 });
-                return { name: label, value: total };
+                return { name: label, revenue: rev, expenses: exp, net: rev - exp };
             });
     })();
+
+    // Margen: qué porcentaje de lo facturado quedó como neto. `null` si no hubo ingresos.
+    const marginPct = dashboard?.netIncome.marginPct ?? null;
+    const formatPct = (value: number) => `${new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 }).format(value)} %`;
+
+    const categoryChartData = (dashboard?.revenueByCategory.categories ?? []).map((c) => ({
+        name: ServiceCategoryLabels[c.category as keyof typeof ServiceCategoryLabels] ?? c.category,
+        value: c.total,
+    }));
 
     const statusChartData = byStatus
         ? Object.values(ServiceStatus).map((st) => ({
@@ -427,6 +438,27 @@ export default function DashboardOverview() {
                 )}
             </div>
 
+            {/* Margen del período: cuánto de lo facturado te quedó */}
+            <div className="min-w-0 rounded-xl border bg-card p-4 sm:p-5">
+                <h2 className="text-lg font-semibold">Margen del período</h2>
+                {dashboardLoading ? (
+                    <div className="mt-3 text-sm text-muted-foreground">Cargando...</div>
+                ) : marginPct === null ? (
+                    <p className="mt-2 text-sm text-muted-foreground">Todavía no hay ingresos cobrados en este período.</p>
+                ) : (
+                    <>
+                        <p className={`mt-2 text-3xl font-extrabold tabular-nums ${marginPct < 0 ? "text-destructive" : "text-foreground"}`}>
+                            {formatPct(marginPct)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            {marginPct < 0
+                                ? "Gastaste más de lo que cobraste en este período."
+                                : `Te quedó ${formatPct(marginPct)} de lo que facturaste.`}
+                        </p>
+                    </>
+                )}
+            </div>
+
             {/* Charts */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 {revenueLoading ? (
@@ -434,10 +466,19 @@ export default function DashboardOverview() {
                         Cargando ingresos...
                     </div>
                 ) : (
+                    <RevenueExpensesChart data={monthlyFlowData} title="Ingresos y egresos por mes" formatValue={formatMoney} />
+                )}
+                {revenueLoading ? (
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">
+                        Cargando categorías...
+                    </div>
+                ) : (
                     <CustomBarChart
-                        data={revenueChartData}
-                        title="Ingresos mensuales"
+                        data={categoryChartData}
+                        title="Ingresos por categoría de servicio"
                         label="Ingresos"
+                        colors={CHART_PALETTE}
+                        barRadius={6}
                         formatValue={formatMoney}
                     />
                 )}

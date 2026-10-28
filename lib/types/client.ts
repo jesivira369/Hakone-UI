@@ -17,6 +17,22 @@ export interface Client {
   userId: number;
 }
 
+/** Respuesta de GET /clients/:id/stats (ver spec 010). Fechas en ISO. */
+export interface ClientStats {
+  totalSpent: number;
+  servicesCount: number;
+  servicesByStatus: Record<string, number>;
+  paidCount: number;
+  averageTicket: number | null;
+  firstServiceAt: string | null;
+  lastServiceAt: string | null;
+  daysSinceLastService: number | null;
+  spendByMonth: { month: string; total: number }[];
+  topCategories: { category: string; count: number; total: number }[];
+  bikesCount: number;
+  inShopCount: number;
+}
+
 export interface ClientQuery {
   data: Client[];
   limit: number;

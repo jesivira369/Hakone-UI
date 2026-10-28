@@ -7,7 +7,7 @@ import { BarChartProps } from "@/lib/types";
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 
-export function CustomBarChart({ data, title = "Distribución de Valores", label = "Valor" }: BarChartProps) {
+export function CustomBarChart({ data, title = "Distribución de Valores", label = "Valor", color = "#0088FE" }: BarChartProps) {
     const { theme } = useTheme();
     const textColor = theme === "dark" ? "#FFFFFF" : "#000000";
 
@@ -17,7 +17,7 @@ export function CustomBarChart({ data, title = "Distribución de Valores", label
             {
                 label,
                 data: data.map(d => d.value),
-                backgroundColor: "#0088FE",
+                backgroundColor: color,
             },
         ],
     };

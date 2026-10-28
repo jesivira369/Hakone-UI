@@ -49,62 +49,63 @@ export interface ServiceStatusStyle {
   chart: string;
 }
 
-// Fuente única de colores por estado. Las clases van completas (no armadas por
-// partes) para que Tailwind las detecte. Ningún estado usa rojo: el rojo queda
-// reservado a "urgente".
+// Fuente única de colores por estado. Tonos mate de una misma familia (misma
+// saturación y luminosidad aprox.), iguales a los de las gráficas
+// (`lib/chartColors.ts`). Las clases van completas (no armadas por partes) para
+// que Tailwind las detecte. El rojo queda reservado a "urgente".
 export const ServiceStatusStyles: Record<ServiceStatus, ServiceStatusStyle> = {
   [ServiceStatus.IN_REVIEW]: {
-    badge: "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200",
-    dot: "bg-violet-500",
-    chart: "#8b5cf6",
+    badge: "bg-[#8A7BB8]/20 text-[#4B3F78] dark:text-[#D6CCF0]",
+    dot: "bg-[#8A7BB8]",
+    chart: "#8A7BB8",
   },
   [ServiceStatus.QUOTED]: {
-    badge: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200",
-    dot: "bg-yellow-400",
-    chart: "#facc15",
+    badge: "bg-[#D9B45A]/25 text-[#7A5C12] dark:text-[#F3E3B0]",
+    dot: "bg-[#D9B45A]",
+    chart: "#D9B45A",
   },
   [ServiceStatus.SCHEDULED]: {
-    badge: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200",
-    dot: "bg-sky-500",
-    chart: "#0ea5e9",
+    badge: "bg-[#5B9BBF]/20 text-[#2A5F80] dark:text-[#BFDDF0]",
+    dot: "bg-[#5B9BBF]",
+    chart: "#5B9BBF",
   },
   [ServiceStatus.IN_PROGRESS]: {
-    badge: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200",
-    dot: "bg-orange-500",
-    chart: "#f97316",
+    badge: "bg-[#E08A5E]/25 text-[#8A4119] dark:text-[#F7D5C2]",
+    dot: "bg-[#E08A5E]",
+    chart: "#E08A5E",
   },
   [ServiceStatus.COMPLETED]: {
-    badge: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200",
-    dot: "bg-green-500",
-    chart: "#22c55e",
+    badge: "bg-[#6FAF7E]/25 text-[#2F6B3E] dark:text-[#C4E6CB]",
+    dot: "bg-[#6FAF7E]",
+    chart: "#6FAF7E",
   },
   [ServiceStatus.PAID]: {
-    badge: "bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-200",
-    dot: "bg-teal-600",
-    chart: "#0d9488",
+    badge: "bg-[#2A9D90]/20 text-[#17625A] dark:text-[#B5E5DF]",
+    dot: "bg-[#2A9D90]",
+    chart: "#2A9D90",
   },
   [ServiceStatus.BLOCKED]: {
-    badge: "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/40 dark:text-fuchsia-200",
-    dot: "bg-fuchsia-600",
-    chart: "#c026d3",
+    badge: "bg-[#B9708F]/20 text-[#7A3556] dark:text-[#EED0DD]",
+    dot: "bg-[#B9708F]",
+    chart: "#B9708F",
   },
   [ServiceStatus.CANCELED]: {
-    badge: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-    dot: "bg-gray-500",
-    chart: "#6b7280",
+    badge: "bg-[#8B939F]/20 text-[#4B525C] dark:text-[#D5D9DF]",
+    dot: "bg-[#8B939F]",
+    chart: "#8B939F",
   },
 };
 
 export const URGENT_STYLE: ServiceStatusStyle = {
-  badge: "bg-red-600 text-white dark:bg-red-600 dark:text-white",
-  dot: "bg-red-600",
-  chart: "#dc2626",
+  badge: "bg-[#C2453D] text-white dark:bg-[#C2453D] dark:text-white",
+  dot: "bg-[#C2453D]",
+  chart: "#C2453D",
 };
 
 const FALLBACK_STYLE: ServiceStatusStyle = {
   badge: "bg-muted text-muted-foreground",
   dot: "bg-muted-foreground",
-  chart: "#9ca3af",
+  chart: "#8B939F",
 };
 
 export function getServiceStatusStyle(status: string): ServiceStatusStyle {

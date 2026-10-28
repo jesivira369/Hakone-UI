@@ -4,6 +4,7 @@ import {
   buildWaMeLink,
   buildWhatsAppReadyMessage,
   buildWhatsAppReceiptMessage,
+  buildWhatsAppReminderMessage,
   trackingUrl,
 } from "@/lib/whatsapp";
 
@@ -58,6 +59,23 @@ export async function sendWhatsApp(kind: WhatsAppMessageKind, service: Service, 
     popup?.close();
     throw err;
   }
+}
+
+/**
+ * Abre WhatsApp con el recordatorio ya redactado. No hay `await`: todo el mensaje sale de datos que
+ * ya están en pantalla, así `window.open` se ejecuta dentro del mismo gesto del usuario.
+ * Lanza si el teléfono no es válido (lo muestra el llamador).
+ */
+export function openReminderWhatsApp(opts: {
+  clientName: string;
+  phone: string;
+  bikeLabel: string;
+  serviceDescription: string;
+  shopName: string;
+}): void {
+  const message = buildWhatsAppReminderMessage(opts);
+  const link = buildWaMeLink({ phoneE164: opts.phone, message });
+  window.open(link, "_blank", "noopener,noreferrer");
 }
 
 export async function copyTrackingLink(serviceId: number): Promise<void> {

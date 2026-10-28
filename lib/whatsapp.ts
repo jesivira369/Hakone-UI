@@ -51,6 +51,21 @@ export function buildWhatsAppReceiptMessage(opts: {
   return `Hola ${name}! Recibimos tu ${bike} en ${shop}. Orden ${formatFolio(opts.number)}${desc ? `: ${desc}` : ""}.${when} Sigue el estado aquí: ${opts.url}`;
 }
 
+/** Recordatorio de mantenimiento: lo manda el taller a mano, la app no envía nada sola. */
+export function buildWhatsAppReminderMessage(opts: {
+  clientName: string;
+  bikeLabel: string;
+  shopName: string;
+  serviceDescription: string;
+}) {
+  const name = (opts.clientName || "").trim() || "Hola";
+  const bike = (opts.bikeLabel || "").trim() || "tu bici";
+  const shop = (opts.shopName || "").trim() || "el taller";
+  const service = (opts.serviceDescription || "").trim();
+  const what = service ? ` (${service})` : "";
+  return `Hola ${name}! Te escribimos desde ${shop} para recordarte el mantenimiento de tu ${bike}${what}. ¿Querés que te agendemos?`;
+}
+
 /** Mensaje con el enlace personal de tareas del mecánico. */
 export function buildWhatsAppMechanicLinkMessage(opts: { mechanicName: string; shopName: string; url: string }) {
   const name = (opts.mechanicName || "").trim() || "Hola";

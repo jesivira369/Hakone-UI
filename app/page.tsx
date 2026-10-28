@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -25,6 +24,7 @@ import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/axiosInstance";
+import { PLAN_PRICE_FORMATTED } from "@/lib/pricing";
 import { toast } from "react-toastify";
 
 const fadeIn = {
@@ -58,37 +58,6 @@ export default function LandingPage() {
     resolver: zodResolver(contactSchema),
     defaultValues: { name: "", shopName: "", phone: "", email: "", message: "" },
   });
-
-  const [pricing, setPricing] = React.useState<{ label: string; suffix: string }>({
-    label: "$20",
-    suffix: "/mes",
-  });
-
-  React.useEffect(() => {
-    // Heurística rápida por zona horaria del navegador (offline, instantánea)
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (tz && tz.includes("Argentina")) {
-        setPricing({ label: "$30.000 ARS", suffix: "/mes" });
-      }
-    } catch {
-      // noop
-    }
-
-    // Confirmación por geolocalización de IP (best-effort, no bloqueante)
-    fetch("https://ipapi.co/json/")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.country_code === "AR") {
-          setPricing({ label: "$30.000 ARS", suffix: "/mes" });
-        } else if (data?.country_code) {
-          setPricing({ label: "$20", suffix: "/mes" });
-        }
-      })
-      .catch(() => {
-        // Sin conexión al servicio de geolocalización: se mantiene la heurística de zona horaria
-      });
-  }, []);
 
   const onSubmitContact = async (data: ContactForm) => {
     try {
@@ -391,28 +360,28 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- PRICING (placeholder) --- */}
+      {/* --- PRICING (plan único, sin tiers) --- */}
       <section id="pricing" className="bg-muted/30 py-24">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-4xl font-bold">Un plan simple, todo incluido</h2>
+            <h2 className="text-4xl font-bold">Un solo plan. Sin tiers.</h2>
             <p className="mt-4 text-muted-foreground">
-              Empezá con todo lo que necesitás para operar el taller. Si necesitás algo a medida (sucursales,
-              integraciones o onboarding), lo vemos juntos.
+              Sin niveles ni funciones bloqueadas: todo está siempre disponible, y cada función nueva que lancemos queda
+              incluida en tu plan.
             </p>
           </div>
 
           <div className="mx-auto mt-12 max-w-3xl">
             <Card className="relative border-border/60 bg-primary/5 p-8 shadow-2xl">
-              <div className="absolute right-0 top-0 rounded-bl-lg bg-primary px-3 py-1 text-[10px] font-bold text-white uppercase">
-                Más elegido
-              </div>
-
               <div className="text-lg font-bold text-primary">Plan Único</div>
-              <div className="mt-4 flex items-baseline justify-center gap-2 text-center md:justify-start md:text-left">
-                <span className="text-4xl font-bold">{pricing.label}</span>
-                <span className="text-sm text-muted-foreground">{pricing.suffix}</span>
+              <div className="mt-4 flex flex-wrap items-baseline justify-center gap-2 text-center md:justify-start md:text-left">
+                <span className="text-4xl font-bold">{PLAN_PRICE_FORMATTED}</span>
+                <span className="text-sm font-semibold">ARS</span>
+                <span className="text-sm text-muted-foreground">/ mes</span>
               </div>
+              <p className="mt-2 text-sm font-medium text-muted-foreground">
+                Un solo precio para todos. Sin tiers.
+              </p>
 
               <ul className="mt-6 grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
                 {[
@@ -422,6 +391,7 @@ export default function LandingPage() {
                   "Clientes y bicicletas (historial)",
                   "Métricas del negocio",
                   "Roles y permisos",
+                  "Todas las funciones nuevas incluidas",
                 ].map((perk) => (
                   <li key={perk} className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -534,7 +504,7 @@ export default function LandingPage() {
               },
               {
                 q: "¿Mis datos están seguros?",
-                a: "La sesión se maneja con cookie HttpOnly y el backend valida permisos. (Podés complementar con tu política de seguridad.)",
+                a: "La sesión se maneja con cookie HttpOnly y el backend valida permisos.",
               },
             ].map((faq, idx) => (
               <AccordionItem key={faq.q} value={`item-${idx}`} className="rounded-xl border border-border bg-card px-6">

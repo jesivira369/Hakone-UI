@@ -9,7 +9,7 @@ import { ServiceModal } from "@/components/ui/ServiceModal";
 import api from "@/lib/axiosInstance";
 import { ColumnDef } from "@tanstack/react-table";
 import { Service } from "@/lib/types";
-import { MessageCircle, MoreVertical, Pencil, PackageCheck, PackageOpen, Trash2, SlidersHorizontal } from "lucide-react";
+import { MessageCircle, MoreVertical, Pencil, PackageCheck, PackageOpen, Search, Trash2, SlidersHorizontal, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { DeleteModal } from "@/components/ui/DeleteModal";
@@ -202,9 +202,9 @@ function ServicesContent() {
                     // La fecha exacta se ve en el detalle; aquí solo el estado (tooltip con la fecha).
                     <span
                         className="whitespace-nowrap rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
-                        title={`Retirada el ${formatDate(row.original.pickedUpAt)}`}
+                        title={`Entregada el ${formatDate(row.original.pickedUpAt)}`}
                     >
-                        Retirado
+                        Entregada
                     </span>
                 ) : (
                     <span className="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
@@ -276,12 +276,27 @@ function ServicesContent() {
         <div className="min-w-0 space-y-4">
             <h1 className="text-xl font-bold sm:text-2xl">Servicios</h1>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <Input
-                    placeholder="Buscar servicio..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full min-w-0 sm:max-w-xs"
-                />
+                <div className="relative w-full min-w-0 sm:max-w-xs">
+                    <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        type="text"
+                        aria-label="Buscar servicios"
+                        placeholder="Buscar por cliente, estado o número (ej. 162)"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-9 pr-9"
+                    />
+                    {search && (
+                        <button
+                            type="button"
+                            aria-label="Limpiar búsqueda"
+                            onClick={() => setSearch("")}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                            <X aria-hidden className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
                 <div className="flex gap-2">
                     <Button
                         variant="outline"

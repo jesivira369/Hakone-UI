@@ -15,7 +15,7 @@ import { UserModal } from "@/components/ui/UserModal";
 import { MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "react-toastify";
-import { formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { AppUser, ContactRequest, ContactRequestsQuery, ContactRequestStatus, UsersQuery } from "@/lib/types";
 import type { SubscriptionStatus } from "@/lib/types/auth";
@@ -160,7 +160,7 @@ function PaymentHistoryModal({ user, onClose }: PaymentModalProps) {
                         {data.map((p) => (
                             <div key={p.id} className="flex items-center justify-between py-3">
                                 <div>
-                                    <div className="font-medium">${p.amount.toFixed(2)} — {p.paymentMethod}</div>
+                                    <div className="font-medium">{formatCurrency(p.amount)} — {p.paymentMethod}</div>
                                     <div className="text-xs text-muted-foreground">
                                         Pagado: {formatDate(p.paidAt)} · Vence: {formatDate(p.newExpiresAt)}
                                     </div>

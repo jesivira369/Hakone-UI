@@ -16,6 +16,12 @@ mantenimiento.
 - [Iniciar sesión](https://hakoneservice.com/login): acceso para talleres con
   cuenta activa.
 
+## Precio
+
+- Plan único: ARS 45.000 por mes. Sin tiers ni niveles: todas las
+  funcionalidades están siempre disponibles, y las funciones nuevas quedan
+  incluidas en el plan.
+
 ## Funcionalidad principal
 
 - Dashboard con facturación, servicios por estado y ranking de clientes.

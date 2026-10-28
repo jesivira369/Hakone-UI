@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { StatsCardProps } from "@/lib/types";
 import Link from "next/link";
 
-export function StatsCard({ title, value, icon, link }: StatsCardProps) {
+export function StatsCard({ title, value, icon, link, destructive }: StatsCardProps) {
     const text = typeof value === "string" ? value : String(value);
     return (
         // Título e ícono arriba, cifra debajo y a todo el ancho: así los montos largos no se cortan
@@ -10,12 +10,18 @@ export function StatsCard({ title, value, icon, link }: StatsCardProps) {
         <Card className="flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-md transition-shadow hover:shadow-lg">
             <div className="flex min-w-0 items-start gap-2 text-muted-foreground">
                 <span className="mt-0.5 flex shrink-0 items-center [&_svg]:h-5 [&_svg]:w-5">{icon}</span>
-                <Link href={link} className="min-w-0 text-sm font-semibold leading-tight text-foreground hover:underline" title={title}>
-                    {title}
-                </Link>
+                {link ? (
+                    <Link href={link} className="min-w-0 text-sm font-semibold leading-tight text-foreground hover:underline" title={title}>
+                        {title}
+                    </Link>
+                ) : (
+                    <span className="min-w-0 text-sm font-semibold leading-tight text-foreground" title={title}>
+                        {title}
+                    </span>
+                )}
             </div>
             <p
-                className="min-w-0 truncate text-xl font-extrabold tabular-nums text-foreground sm:text-2xl"
+                className={`min-w-0 truncate text-xl font-extrabold tabular-nums sm:text-2xl ${destructive ? "text-destructive" : "text-foreground"}`}
                 title={text}
             >
                 {value}

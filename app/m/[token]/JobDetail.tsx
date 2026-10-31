@@ -10,6 +10,7 @@ import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatFolio } from "@/lib/whatsapp";
 import type { JobSavePatch } from "./api";
 import { diffParts, toDraftParts, type DraftPart } from "./jobDraft";
+import { MechanicReadyWhatsApp } from "./MechanicReadyWhatsApp";
 import { PartsEditor } from "./PartsEditor";
 import { StatusActions } from "./StatusActions";
 import type { JobDetail as JobDetailData } from "./types";
@@ -35,6 +36,7 @@ const textareaClass =
   "mt-1 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm";
 
 interface JobDetailProps {
+  token: string;
   detail: JobDetailData;
   state: DetailState;
   busyStatus: boolean;
@@ -51,7 +53,7 @@ interface JobDetailProps {
  * Panel de detalle del trabajo. NO guarda solo: descripción, notas, fechas y repuestos se editan en pantalla y se
  * mandan juntos, en un único pedido, con "Guardar cambios". Así un taller no escribe en la base por cada toque.
  */
-export function JobDetail({ detail, state, busyStatus, onRequestStatus, onBack, onSaved, onDirtyChange }: JobDetailProps) {
+export function JobDetail({ token, detail, state, busyStatus, onRequestStatus, onBack, onSaved, onDirtyChange }: JobDetailProps) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(detail));
   const [partsDraft, setPartsDraft] = useState<DraftPart[]>(() => toDraftParts(detail.parts));
   const [message, setMessage] = useState<{ kind: "error" | "info"; text: string } | null>(null);
@@ -166,6 +168,7 @@ export function JobDetail({ detail, state, busyStatus, onRequestStatus, onBack, 
             Este servicio ya está cerrado: no se puede editar desde aquí. Avisa al dueño si hay que corregir algo.
           </p>
         )}
+        <MechanicReadyWhatsApp token={token} detail={detail} />
       </header>
 
       <section aria-label="Datos del trabajo" className="space-y-4">

@@ -102,3 +102,19 @@ export interface JobSavePatch {
 export function saveJob(token: string, id: number, patch: JobSavePatch, expectedUpdatedAt: string) {
   return sendJson(`${base(token)}/${id}`, "PATCH", { ...patch, expectedUpdatedAt }, "No se pudieron guardar los cambios");
 }
+
+/** Datos para armar el aviso por WhatsApp. Es el único lugar de `/m/` donde llega el teléfono del cliente. */
+export interface WhatsappReadyData {
+  phoneE164: string;
+  publicCode: string;
+  clientName: string;
+  bike: string | null;
+  number: number;
+  shopName: string;
+}
+
+export async function fetchWhatsappReady(token: string, id: number): Promise<WhatsappReadyData> {
+  const res = await fetch(`${base(token)}/${id}/whatsapp-ready`, { cache: "no-store" });
+  if (!res.ok) throw await errorFrom(res, "No se pudo preparar el aviso");
+  return (await res.json()) as WhatsappReadyData;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useCallback, useRef, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Bike, ChevronDown, ChevronUp, PanelLeft, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -92,8 +92,20 @@ function MechanicWorkspace() {
     setPending({ item, status });
   };
 
-  const open = (item: Pick<JobItem, "id">) => router.push(`${pathname}?job=${item.id}`, { scroll: false });
-  const back = () => router.replace(pathname, { scroll: false });
+  // El detalle avisa si tiene cambios sin guardar: antes de abrir otro trabajo o volver a la lista se pide confirmación.
+  const dirtyRef = useRef(false);
+  const setDirty = useCallback((dirty: boolean) => {
+    dirtyRef.current = dirty;
+  }, []);
+  const confirmLeave = () => !dirtyRef.current || window.confirm("Tienes cambios sin guardar. ¿Salir sin guardar?");
+
+  const open = (item: Pick<JobItem, "id">) => {
+    if (item.id === selectedId || !confirmLeave()) return;
+    router.push(`${pathname}?job=${item.id}`, { scroll: false });
+  };
+  const back = () => {
+    if (confirmLeave()) router.replace(pathname, { scroll: false });
+  };
 
   if (jobs.unavailable && !jobs.header) return <Unavailable />;
 
@@ -220,6 +232,7 @@ function MechanicWorkspace() {
         onRequestStatus={(status) => requestStatus(detail.detail!, status)}
         onBack={back}
         onSaved={jobs.reload}
+        onDirtyChange={setDirty}
       />
     );
   })();

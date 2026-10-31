@@ -118,8 +118,14 @@ entrega no se bloquea por estado (ver `Hakone-API/docs/specs/007-pickup-and-cost
   completa (`?job=<id>` en la URL); desde `md` van lado a lado, y en `md` la lista se puede ocultar. Usa `fetch` plano
   y estado local (no TanStack ni axios ni `useAuth`), porque no hay sesión. El layout (`layout.tsx`) lleva `noindex` y
   `referrer: no-referrer`.
-  - Cada edición manda `expectedUpdatedAt`; ante un 409 la API devuelve el detalle vigente y la UI lo reemplaza sin pisar
-    lo que el mecánico escribió y todavía no guardó (`useJobDetail`, `JobDetail`).
+  - **El guardado es manual y de un solo pedido.** Descripción, notas, fechas y repuestos (alta, cantidad, nombre, precio,
+    quitar) se arman en borradores locales (`JobDetail`, `PartsEditor`, `jobDraft.ts`) y el botón "Guardar cambios" los
+    manda juntos en un único `PATCH` (`useJobDetail.save`). **No agregues guardado automático ni pedidos por campo o por
+    repuesto**: con muchos talleres escribiendo en la base por cada toque se satura. Hay "Descartar", aviso de
+    `beforeunload` y una confirmación al salir de un trabajo con cambios sin guardar. Los cambios de estado son una acción
+    explícita aparte (con su confirmación).
+  - Cada guardado manda `expectedUpdatedAt`; ante un 409 la API devuelve el detalle vigente y la UI lo reemplaza sin pisar
+    lo que el mecánico escribió y todavía no guardó.
   - Los montos (`cost`, `unitPrice`) se muestran en **solo lectura** y no existen en "En revisión". El mecánico solo edita
     el precio de los repuestos que cargó él (`editablePrice`); nunca se muestra costo ni ganancia.
   - Los botones de estado (`StatusActions`) nunca llegan a `PAID` ni `CANCELED`.

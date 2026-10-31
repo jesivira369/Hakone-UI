@@ -19,6 +19,7 @@ import { formatFolio } from "@/lib/whatsapp";
 import { WhatsAppShareButton } from "@/components/ui/WhatsAppShareButton";
 import { TrackingLinkMenu } from "@/components/ui/TrackingLinkMenu";
 import { toast } from "react-toastify";
+import { ServiceNotesCard } from "@/components/ui/ServiceNotesCard";
 
 export default function ServiceDetails() {
     const { id: serviceId } = useParams();
@@ -219,7 +220,17 @@ export default function ServiceDetails() {
                                 <tbody>
                                     {service.parts.map((part, i) => (
                                         <tr key={part.id} className={i % 2 === 0 ? "bg-background" : "bg-muted/30"}>
-                                            <td className="px-3 py-2">{part.name}</td>
+                                            <td className="px-3 py-2">
+                                                {part.name}
+                                                {part.addedBy === "MECHANIC" && (
+                                                    <span
+                                                        className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-300"
+                                                        title="Lo cargó un mecánico desde su enlace: revisa el precio"
+                                                    >
+                                                        Cargado por mecánico
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td className="px-3 py-2 text-right">{part.quantity}</td>
                                             <td className="px-3 py-2 text-right">{formatCurrency(part.unitPrice)}</td>
                                             <td className="px-3 py-2 text-right font-medium">
@@ -241,6 +252,8 @@ export default function ServiceDetails() {
                     </CardContent>
                 </Card>
             )}
+
+            <ServiceNotesCard service={service} />
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <Card>

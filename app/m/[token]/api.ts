@@ -74,46 +74,33 @@ export async function fetchJobDetail(token: string, id: number): Promise<JobDeta
   return (await res.json()) as JobDetail;
 }
 
-/** Campos editables del servicio. Las fechas viajan como ISO (o `null` para quitarlas). */
-export interface JobFieldsPatch {
-  description?: string;
-  notes?: string | null;
-  scheduledAt?: string | null;
-  deliveryAt?: string | null;
-}
-
-export function saveJobFields(token: string, id: number, patch: JobFieldsPatch, expectedUpdatedAt: string) {
-  return sendJson(`${base(token)}/${id}`, "PATCH", { ...patch, expectedUpdatedAt }, "No se pudieron guardar los cambios");
-}
-
-export interface PartInput {
+export interface PartAdd {
   name: string;
   quantity: number;
   unitPrice?: number;
 }
 
-export function addJobPart(token: string, id: number, part: PartInput, expectedUpdatedAt: string) {
-  return sendJson(`${base(token)}/${id}/parts`, "POST", { ...part, expectedUpdatedAt }, "No se pudo agregar el repuesto");
+export interface PartUpdate {
+  id: number;
+  name?: string;
+  quantity?: number;
+  unitPrice?: number;
 }
 
-export function editJobPart(
-  token: string,
-  id: number,
-  partId: number,
-  patch: Partial<PartInput>,
-  expectedUpdatedAt: string,
-) {
-  return sendJson(
-    `${base(token)}/${id}/parts/${partId}`,
-    "PATCH",
-    { ...patch, expectedUpdatedAt },
-    "No se pudo cambiar el repuesto",
-  );
+/**
+ * Todo lo que el mecánico cambió en pantalla. Se manda en UN solo pedido: campos del servicio (las fechas viajan como
+ * ISO, o `null` para quitarlas) y repuestos (altas, cambios y bajas). No hay pedidos por campo ni por repuesto.
+ */
+export interface JobSavePatch {
+  description?: string;
+  notes?: string | null;
+  scheduledAt?: string | null;
+  deliveryAt?: string | null;
+  parts?: { add?: PartAdd[]; update?: PartUpdate[]; remove?: number[] };
 }
 
-export function removeJobPart(token: string, id: number, partId: number, expectedUpdatedAt: string) {
-  const query = new URLSearchParams({ expectedUpdatedAt });
-  return sendJson(`${base(token)}/${id}/parts/${partId}?${query}`, "DELETE", undefined, "No se pudo borrar el repuesto");
+export function saveJob(token: string, id: number, patch: JobSavePatch, expectedUpdatedAt: string) {
+  return sendJson(`${base(token)}/${id}`, "PATCH", { ...patch, expectedUpdatedAt }, "No se pudieron guardar los cambios");
 }
 
 /** Datos para armar el aviso por WhatsApp. Es el único lugar de `/m/` donde llega el teléfono del cliente. */

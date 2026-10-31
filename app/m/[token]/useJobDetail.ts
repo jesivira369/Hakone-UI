@@ -1,16 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  addJobPart,
-  editJobPart,
-  fetchJobDetail,
-  JobsApiError,
-  removeJobPart,
-  saveJobFields,
-  type JobFieldsPatch,
-  type PartInput,
-} from "./api";
+import { fetchJobDetail, JobsApiError, saveJob, type JobSavePatch } from "./api";
 import type { JobDetail } from "./types";
 
 /** Resultado de una edición: `conflict` indica que el servicio cambió y se recargó con lo vigente. */
@@ -18,15 +9,14 @@ export interface EditResult {
   ok: boolean;
   message?: string;
   conflict?: boolean;
-  /** En un conflicto, el detalle vigente que ya reemplazó al abierto. */
+  /** El detalle vigente que ya reemplazó al abierto: el recién guardado o, en un conflicto, el que cambió por fuera. */
   current?: JobDetail;
 }
 
-const OK: EditResult = { ok: true };
 const NETWORK = "No se pudo guardar. Revisa tu conexión.";
 
 /**
- * Detalle del trabajo abierto en el panel. Cada edición manda el `updatedAt` que el mecánico tenía abierto: si el
+ * Detalle del trabajo abierto en el panel. El guardado manda el `updatedAt` que el mecánico tenía abierto: si el
  * dueño u otra pestaña cambió el servicio, la API responde 409 con lo vigente y aquí se reemplaza sin pisar nada.
  */
 export function useJobDetail(token: string, jobId: number | null) {
@@ -80,8 +70,9 @@ export function useJobDetail(token: string, jobId: number | null) {
     if (!detail) return { ok: false, message: NETWORK };
     setSaving(true);
     try {
-      setDetail(await op(detail));
-      return OK;
+      const saved = await op(detail);
+      setDetail(saved);
+      return { ok: true, current: saved };
     } catch (err) {
       if (err instanceof JobsApiError) {
         if (err.status === 409 && err.current) {
@@ -103,10 +94,7 @@ export function useJobDetail(token: string, jobId: number | null) {
     loadError,
     saving,
     refresh,
-    saveFields: (patch: JobFieldsPatch) => run((d) => saveJobFields(token, d.id, patch, d.updatedAt)),
-    addPart: (part: PartInput) => run((d) => addJobPart(token, d.id, part, d.updatedAt)),
-    editPart: (partId: number, patch: Partial<PartInput>) =>
-      run((d) => editJobPart(token, d.id, partId, patch, d.updatedAt)),
-    removePart: (partId: number) => run((d) => removeJobPart(token, d.id, partId, d.updatedAt)),
+    /** Guarda de una vez todo lo que el mecánico cambió (campos y repuestos): un solo pedido a la API. */
+    save: (patch: JobSavePatch) => run((d) => saveJob(token, d.id, patch, d.updatedAt)),
   };
 }

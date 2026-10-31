@@ -6,33 +6,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/ui/NumericInput";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
-import type { PartInput } from "./api";
-import type { JobPart } from "./types";
-import type { EditResult } from "./useJobDetail";
+import { newDraftPart, type DraftPart } from "./jobDraft";
 
 interface PartsEditorProps {
-  parts: JobPart[];
+  /** Borrador local: nada de lo que se hace aquí se guarda hasta tocar "Guardar cambios". */
+  parts: DraftPart[];
   /** `false` en "En revisión": los montos están ocultos y no se cargan precios. */
   pricesVisible: boolean;
   editable: boolean;
-  saving: boolean;
-  onAdd: (part: PartInput) => Promise<EditResult>;
-  onEdit: (partId: number, patch: Partial<PartInput>) => Promise<EditResult>;
-  onRemove: (partId: number) => Promise<EditResult>;
+  onChange: (parts: DraftPart[]) => void;
 }
 
 const MAX_QUANTITY = 1000;
 
-/** Repuestos del trabajo: el mecánico los agrega, cambia cantidades, corrige o borra cualquiera. */
-export function PartsEditor({ parts, pricesVisible, editable, saving, onAdd, onEdit, onRemove }: PartsEditorProps) {
-  const [error, setError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [removingId, setRemovingId] = useState<number | null>(null);
+/**
+ * Repuestos del trabajo. El mecánico agrega, cambia cantidades, corrige o quita cualquiera, pero todo queda en
+ * pantalla: se guarda de una vez con el botón de abajo (no se escribe en la base por cada toque).
+ */
+export function PartsEditor({ parts, pricesVisible, editable, onChange }: PartsEditorProps) {
+  const [editingKey, setEditingKey] = useState<string | null>(null);
 
-  const report = (result: EditResult) => {
-    setError(result.ok ? null : (result.message ?? "No se pudo guardar"));
-    return result.ok;
-  };
+  const replace = (key: string, patch: Partial<DraftPart>) =>
+    onChange(parts.map((p) => (p.key === key ? { ...p, ...patch } : p)));
+  const remove = (key: string) => onChange(parts.filter((p) => p.key !== key));
 
   return (
     <section aria-label="Repuestos" className="space-y-3">
@@ -42,19 +38,19 @@ export function PartsEditor({ parts, pricesVisible, editable, saving, onAdd, onE
 
       <ul className="divide-y rounded-xl border bg-card">
         {parts.map((part) =>
-          editingId === part.id ? (
+          editingKey === part.key ? (
             <PartEditRow
-              key={part.id}
+              key={part.key}
               part={part}
               pricesVisible={pricesVisible}
-              saving={saving}
-              onCancel={() => setEditingId(null)}
-              onSave={async (patch) => {
-                if (report(await onEdit(part.id, patch))) setEditingId(null);
+              onCancel={() => setEditingKey(null)}
+              onApply={(patch) => {
+                replace(part.key, patch);
+                setEditingKey(null);
               }}
             />
           ) : (
-            <li key={part.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3">
+            <li key={part.key} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3">
               <div className="flex items-center gap-1">
                 <Button
                   type="button"
@@ -62,8 +58,8 @@ export function PartsEditor({ parts, pricesVisible, editable, saving, onAdd, onE
                   size="icon"
                   className="h-9 w-9"
                   aria-label={`Restar una unidad de ${part.name}`}
-                  disabled={!editable || saving || part.quantity <= 1}
-                  onClick={async () => report(await onEdit(part.id, { quantity: part.quantity - 1 }))}
+                  disabled={!editable || part.quantity <= 1}
+                  onClick={() => replace(part.key, { quantity: part.quantity - 1 })}
                 >
                   <Minus size={14} />
                 </Button>
@@ -74,8 +70,8 @@ export function PartsEditor({ parts, pricesVisible, editable, saving, onAdd, onE
                   size="icon"
                   className="h-9 w-9"
                   aria-label={`Sumar una unidad de ${part.name}`}
-                  disabled={!editable || saving || part.quantity >= MAX_QUANTITY}
-                  onClick={async () => report(await onEdit(part.id, { quantity: part.quantity + 1 }))}
+                  disabled={!editable || part.quantity >= MAX_QUANTITY}
+                  onClick={() => replace(part.key, { quantity: part.quantity + 1 })}
                 >
                   <Plus size={14} />
                 </Button>
@@ -84,100 +80,67 @@ export function PartsEditor({ parts, pricesVisible, editable, saving, onAdd, onE
               <div className="order-first min-w-0 basis-full lg:order-none lg:basis-0 lg:flex-1">
                 <p className="break-words text-sm font-medium">{part.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {part.addedBy === "MECHANIC" ? "Cargado por mecánico" : "Cargado por el taller"}
-                  {pricesVisible && part.unitPrice !== undefined && ` · ${formatCurrency(part.unitPrice)} c/u`}
+                  {part.id === undefined
+                    ? "Nuevo, sin guardar"
+                    : part.addedBy === "MECHANIC"
+                      ? "Cargado por mecánico"
+                      : "Cargado por el taller"}
+                  {pricesVisible && part.unitPrice !== null && ` · ${formatCurrency(part.unitPrice)} c/u`}
                 </p>
               </div>
 
-              {editable && removingId === part.id ? (
-                <div className="ml-auto flex items-center gap-1.5">
-                  <span className="text-sm">¿Borrar?</span>
+              {editable && (
+                <div className="ml-auto flex items-center gap-1">
                   <Button
                     type="button"
-                    size="sm"
-                    variant="destructive"
-                    disabled={saving}
-                    onClick={async () => {
-                      if (report(await onRemove(part.id))) setRemovingId(null);
-                    }}
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9"
+                    aria-label={`Editar ${part.name}`}
+                    onClick={() => setEditingKey(part.key)}
                   >
-                    Sí
+                    <Pencil size={16} />
                   </Button>
-                  <Button type="button" size="sm" variant="outline" onClick={() => setRemovingId(null)}>
-                    No
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-destructive"
+                    aria-label={`Quitar ${part.name}`}
+                    onClick={() => remove(part.key)}
+                  >
+                    <Trash2 size={16} />
                   </Button>
                 </div>
-              ) : (
-                editable && (
-                  <div className="ml-auto flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9"
-                      aria-label={`Editar ${part.name}`}
-                      disabled={saving}
-                      onClick={() => {
-                        setError(null);
-                        setEditingId(part.id);
-                      }}
-                    >
-                      <Pencil size={16} />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 text-destructive"
-                      aria-label={`Borrar ${part.name}`}
-                      disabled={saving}
-                      onClick={() => setRemovingId(part.id)}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                )
               )}
             </li>
           ),
         )}
       </ul>
 
-      {editable && <AddPartForm pricesVisible={pricesVisible} saving={saving} onAdd={onAdd} onResult={report} />}
-
-      {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-          {error}
-        </p>
-      )}
+      {editable && <AddPartForm pricesVisible={pricesVisible} onAdd={(part) => onChange([...parts, part])} />}
     </section>
   );
 }
 
 interface PartEditRowProps {
-  part: JobPart;
+  part: DraftPart;
   pricesVisible: boolean;
-  saving: boolean;
   onCancel: () => void;
-  onSave: (patch: Partial<PartInput>) => Promise<void>;
+  onApply: (patch: Partial<DraftPart>) => void;
 }
 
-function PartEditRow({ part, pricesVisible, saving, onCancel, onSave }: PartEditRowProps) {
+function PartEditRow({ part, pricesVisible, onCancel, onApply }: PartEditRowProps) {
   const [name, setName] = useState(part.name);
   const [quantity, setQuantity] = useState<number | null>(part.quantity);
-  const [price, setPrice] = useState<number | null>(part.unitPrice ?? null);
+  const [price, setPrice] = useState<number | null>(part.unitPrice);
 
   const canEditPrice = pricesVisible && part.editablePrice;
   const valid = name.trim().length > 0 && quantity !== null && quantity >= 1;
 
-  const submit = () => {
+  const apply = () => {
     if (!valid || quantity === null) return;
-    const patch: Partial<PartInput> = {};
-    if (name.trim() !== part.name) patch.name = name.trim();
-    if (quantity !== part.quantity) patch.quantity = quantity;
-    if (canEditPrice && price !== null && price !== part.unitPrice) patch.unitPrice = price;
-    if (Object.keys(patch).length === 0) onCancel();
-    else void onSave(patch);
+    onApply({ name: name.trim(), quantity, ...(canEditPrice ? { unitPrice: price } : {}) });
   };
 
   return (
@@ -202,11 +165,11 @@ function PartEditRow({ part, pricesVisible, saving, onCancel, onSave }: PartEdit
         <p className="text-xs text-muted-foreground">El precio de este repuesto lo fija el taller.</p>
       )}
       <div className="flex justify-end gap-2">
-        <Button type="button" size="sm" variant="outline" onClick={onCancel} disabled={saving}>
+        <Button type="button" size="sm" variant="outline" onClick={onCancel}>
           <X size={14} className="mr-1" aria-hidden /> Cancelar
         </Button>
-        <Button type="button" size="sm" onClick={submit} disabled={saving || !valid}>
-          <Check size={14} className="mr-1" aria-hidden /> {saving ? "Guardando..." : "Guardar"}
+        <Button type="button" size="sm" onClick={apply} disabled={!valid}>
+          <Check size={14} className="mr-1" aria-hidden /> Aplicar
         </Button>
       </div>
     </li>
@@ -215,27 +178,22 @@ function PartEditRow({ part, pricesVisible, saving, onCancel, onSave }: PartEdit
 
 interface AddPartFormProps {
   pricesVisible: boolean;
-  saving: boolean;
-  onAdd: (part: PartInput) => Promise<EditResult>;
-  onResult: (result: EditResult) => boolean;
+  onAdd: (part: DraftPart) => void;
 }
 
-function AddPartForm({ pricesVisible, saving, onAdd, onResult }: AddPartFormProps) {
+function AddPartForm({ pricesVisible, onAdd }: AddPartFormProps) {
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState<number | null>(1);
   const [price, setPrice] = useState<number | null>(null);
 
   const valid = name.trim().length > 0 && quantity !== null && quantity >= 1;
 
-  const submit = async () => {
+  const submit = () => {
     if (!valid || quantity === null) return;
-    const input: PartInput = { name: name.trim(), quantity };
-    if (pricesVisible && price !== null) input.unitPrice = price;
-    if (onResult(await onAdd(input))) {
-      setName("");
-      setQuantity(1);
-      setPrice(null);
-    }
+    onAdd(newDraftPart({ name: name.trim(), quantity, unitPrice: pricesVisible ? price : null }));
+    setName("");
+    setQuantity(1);
+    setPrice(null);
   };
 
   return (
@@ -243,7 +201,7 @@ function AddPartForm({ pricesVisible, saving, onAdd, onResult }: AddPartFormProp
       className="space-y-2 rounded-xl border border-dashed p-3"
       onSubmit={(e) => {
         e.preventDefault();
-        void submit();
+        submit();
       }}
     >
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Agregar repuesto</p>
@@ -277,9 +235,11 @@ function AddPartForm({ pricesVisible, saving, onAdd, onResult }: AddPartFormProp
       </div>
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
-          {pricesVisible ? "El precio es opcional; si lo dejas vacío lo completa el taller." : "Los precios se cargan desde que el trabajo sale de revisión."}
+          {pricesVisible
+            ? "El precio es opcional; si lo dejas vacío lo completa el taller."
+            : "Los precios se cargan desde que el trabajo sale de revisión."}
         </p>
-        <Button type="submit" size="sm" disabled={saving || !valid}>
+        <Button type="submit" size="sm" disabled={!valid}>
           <Plus size={14} className="mr-1" aria-hidden /> Agregar
         </Button>
       </div>

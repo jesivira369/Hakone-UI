@@ -119,7 +119,7 @@ export function useMechanicJobs(token: string) {
   };
 
   /** Cambia el estado de un trabajo. Devuelve `null` si salió bien o el mensaje de error para mostrarlo en el modal. */
-  const changeStatus = async (item: JobItem, status: string): Promise<string | null> => {
+  const changeStatus = async (item: Pick<JobItem, "id">, status: string): Promise<string | null> => {
     setBusyId(item.id);
     try {
       await updateJobStatus(token, item.id, status);

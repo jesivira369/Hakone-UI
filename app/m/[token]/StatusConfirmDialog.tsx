@@ -8,7 +8,8 @@ import { formatFolio } from "@/lib/whatsapp";
 import type { JobItem } from "./types";
 
 export interface PendingStatusChange {
-  item: JobItem;
+  /** Alcanza con el id y el folio: lo mismo sirve para una tarjeta de la lista que para el detalle. */
+  item: Pick<JobItem, "id" | "number">;
   status: string;
 }
 

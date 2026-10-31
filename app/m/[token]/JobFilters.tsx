@@ -10,7 +10,7 @@ const selectClass = "h-10 w-full rounded-md border bg-background px-2 text-sm te
 /** Orden de la lista (urgentes primero, fechas, estado) y filtro por estado. Se recuerdan en el dispositivo. */
 export function JobFilters({ view, onChange }: JobFiltersProps) {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 gap-2 md:max-lg:grid-cols-1">
       <label className="min-w-0 text-xs font-medium text-muted-foreground">
         Ordenar por
         <select

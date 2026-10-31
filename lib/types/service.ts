@@ -9,6 +9,19 @@ export interface ServicePart {
   quantity: number;
   unitPrice: number;
   serviceId: number;
+  /** Quién cargó el repuesto. Los de un mecánico se marcan para que el dueño revise el precio. */
+  addedBy?: "OWNER" | "MECHANIC";
+}
+
+/** Edición hecha por un mecánico desde su enlace (valor anterior y nuevo, como texto). */
+export interface ServiceActivity {
+  id: number;
+  action: "FIELD_CHANGED" | "PART_ADDED" | "PART_CHANGED" | "PART_REMOVED";
+  field: string | null;
+  before: string | null;
+  after: string | null;
+  actorName: string | null;
+  createdAt: string;
 }
 
 export interface ServicePartInput {
@@ -45,7 +58,11 @@ export interface Service {
   completedAt?: string | null;
   scheduledAt?: string | null;
   deliveryAt?: string | null;
+  /** Nota interna del taller; nunca se muestra al cliente. */
+  notes?: string | null;
   parts: ServicePart[];
+  /** Solo viene en el detalle (`GET /services/:id`): las últimas ediciones del mecánico. */
+  activity?: ServiceActivity[];
 }
 
 export interface ServiceQuery {

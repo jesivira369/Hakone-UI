@@ -114,6 +114,15 @@ entrega no se bloquea por estado (ver `Hakone-API/docs/specs/007-pickup-and-cost
   ruta pública, sumala ahí; si no, el AuthProvider pide `/auth/me`, recibe 401 y redirige a `/login`.
 - `/s/[code]` se renderiza en el servidor, con `noindex` y vista previa genérica. No muestra precios ni teléfonos.
 - El proxy de Next reenvía la IP real del cliente a la API (`x-client-ip` + `BFF_SECRET`) para el límite de peticiones.
+- `/m/[token]` (enlace del mecánico, spec 012) es una vista de **lista + detalle**: en celular el detalle abre a pantalla
+  completa (`?job=<id>` en la URL); desde `md` van lado a lado, y en `md` la lista se puede ocultar. Usa `fetch` plano
+  y estado local (no TanStack ni axios ni `useAuth`), porque no hay sesión. El layout (`layout.tsx`) lleva `noindex` y
+  `referrer: no-referrer`.
+  - Cada edición manda `expectedUpdatedAt`; ante un 409 la API devuelve el detalle vigente y la UI lo reemplaza sin pisar
+    lo que el mecánico escribió y todavía no guardó (`useJobDetail`, `JobDetail`).
+  - Los montos (`cost`, `unitPrice`) se muestran en **solo lectura** y no existen en "En revisión". El mecánico solo edita
+    el precio de los repuestos que cargó él (`editablePrice`); nunca se muestra costo ni ganancia.
+  - Los botones de estado (`StatusActions`) nunca llegan a `PAID` ni `CANCELED`.
 
 ### Servicios y calendario (responsive)
 

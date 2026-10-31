@@ -214,6 +214,7 @@ function MechanicWorkspace() {
     return (
       <JobDetail
         key={detail.detail.id}
+        token={token}
         detail={detail.detail}
         state={detail}
         busyStatus={jobs.busyId === detail.detail.id}

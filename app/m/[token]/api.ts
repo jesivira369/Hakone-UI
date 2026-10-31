@@ -115,3 +115,19 @@ export function removeJobPart(token: string, id: number, partId: number, expecte
   const query = new URLSearchParams({ expectedUpdatedAt });
   return sendJson(`${base(token)}/${id}/parts/${partId}?${query}`, "DELETE", undefined, "No se pudo borrar el repuesto");
 }
+
+/** Datos para armar el aviso por WhatsApp. Es el único lugar de `/m/` donde llega el teléfono del cliente. */
+export interface WhatsappReadyData {
+  phoneE164: string;
+  publicCode: string;
+  clientName: string;
+  bike: string | null;
+  number: number;
+  shopName: string;
+}
+
+export async function fetchWhatsappReady(token: string, id: number): Promise<WhatsappReadyData> {
+  const res = await fetch(`${base(token)}/${id}/whatsapp-ready`, { cache: "no-store" });
+  if (!res.ok) throw await errorFrom(res, "No se pudo preparar el aviso");
+  return (await res.json()) as WhatsappReadyData;
+}

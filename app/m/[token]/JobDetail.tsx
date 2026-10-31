@@ -134,7 +134,7 @@ export function JobDetail({ detail, state, busyStatus, onRequestStatus, onBack, 
           <textarea
             className={textareaClass}
             rows={3}
-            maxLength={500}
+            maxLength={2000}
             value={draft.description}
             disabled={!editable}
             onChange={(e) => setField("description", e.target.value)}
